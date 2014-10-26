@@ -147,17 +147,6 @@ namespace Quadtree
                 new Point2i(size, size));
         }
 
-        public RegionQuadtree(int resolution, T initialValue)
-            : this(resolution)
-        {
-            this.value = initialValue;
-
-            if (OnQuadAdded != null)
-            {
-                OnQuadAdded(this, new QuadEventArgs<T>(this));
-            }
-        }
-
         private RegionQuadtree(int resolution, int depth, T? value, RegionQuadtree<T> parent, AABB2i aabb)
         {
             this.resolution = resolution;
@@ -178,6 +167,29 @@ namespace Quadtree
 
                     par = par.parent;
                 }
+            }
+        }
+
+        public void Set(T value)
+        {
+            Set(ref value);
+        }
+
+        public void Set(ref T value)
+        {
+            Unset();
+
+            this.value = value;
+
+            var par = this;
+            while (par != null)
+            {
+                if (par.OnQuadAdded != null)
+                {
+                    par.OnQuadAdded(par, new QuadEventArgs<T>(this));
+                }
+
+                par = par.parent;
             }
         }
 
@@ -207,9 +219,15 @@ namespace Quadtree
             {
                 this.value = value;
 
-                if (OnQuadAdded != null)
+                var par = this;
+                while (par != null)
                 {
-                    OnQuadAdded(this, new QuadEventArgs<T>(this));
+                    if (par.OnQuadAdded != null)
+                    {
+                        par.OnQuadAdded(par, new QuadEventArgs<T>(this));
+                    }
+
+                    par = par.parent;
                 }
 
                 return true;
@@ -219,11 +237,6 @@ namespace Quadtree
             {
                 if (quad.Set(ref point, ref value))
                 {
-                    if (OnQuadAdded != null)
-                    {
-                        OnQuadAdded(quad, new QuadEventArgs<T>(quad));
-                    }
-
                     return true;
                 }
             }
@@ -231,6 +244,40 @@ namespace Quadtree
             return false;
 
             throw new InvalidOperationException("Set didn't fail nor succeed. This is not supposed to happen!");
+        }
+
+        public void Unset()
+        {
+            if (Type == QuadType.White)
+            {
+                return;
+            }
+
+            if (Type == QuadType.Black)
+            {
+                var par = this;
+                while (par != null)
+                {
+                    if (par.OnQuadRemoving != null)
+                    {
+                        par.OnQuadRemoving(par, new QuadEventArgs<T>(this));
+                    }
+
+                    par = par.parent;
+                }
+
+                this.value = null;
+            }
+
+            if (Type == QuadType.Grey)
+            {
+                foreach (var quad in Children)
+                {
+                    quad.Unset();
+                }
+            }
+
+            unsubdivide();
         }
 
         public bool Unset(Point2i point)
@@ -257,9 +304,15 @@ namespace Quadtree
             }
             else
             {
-                if (OnQuadRemoving != null)
+                var par = this;
+                while (par != null)
                 {
-                    OnQuadRemoving(this, new QuadEventArgs<T>(this));
+                    if (par.OnQuadRemoving != null)
+                    {
+                        par.OnQuadRemoving(par, new QuadEventArgs<T>(this));
+                    }
+
+                    par = par.parent;
                 }
 
                 this.value = null;
@@ -271,11 +324,6 @@ namespace Quadtree
             {
                 if (quad.Unset(ref point))
                 {
-                    if (OnQuadRemoving != null)
-                    {
-                        OnQuadRemoving(quad, new QuadEventArgs<T>(quad));
-                    }
-
                     return true;
                 }
             }
@@ -306,7 +354,7 @@ namespace Quadtree
         }
         */
 
-        private bool subdivide()
+        private void subdivide()
         {
             northWest = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
                 aabb.LowerBound,
@@ -328,7 +376,7 @@ namespace Quadtree
                 {
                     if (par.OnQuadRemoving != null)
                     {
-                        par.OnQuadRemoving(this, new QuadEventArgs<T>(this));
+                        par.OnQuadRemoving(par, new QuadEventArgs<T>(this));
                     }
 
                     par = par.parent;
@@ -336,8 +384,72 @@ namespace Quadtree
 
                 value = null;
             }
+        }
 
-            return false;
+        private bool unsubdivide()
+        {
+            if (Type != QuadType.Grey)
+                return false;
+
+            var northWestValue = northWest.value;
+            var allBlack = Type == QuadType.Black && Children.All(q => q.Type == QuadType.Black && northWestValue.Equals(q.value.Value));
+            var allWhite = Children.All(q => q.Type == QuadType.White);
+
+            if (allBlack)
+            {
+                RegionQuadtree<T> par;
+                foreach (var quad in Children)
+                {
+                    par = quad;
+                    while (par != null)
+                    {
+                        if (par.OnQuadRemoving != null)
+                        {
+                            par.OnQuadRemoving(par, new QuadEventArgs<T>(quad));
+                        }
+
+                        par = par.parent;
+                    }
+                }
+
+                this.value = northWestValue;
+
+                par = this;
+                while (par != null)
+                {
+                    if (par.OnQuadAdded != null)
+                    {
+                        par.OnQuadAdded(par, new QuadEventArgs<T>(this));
+                    }
+
+                    par = par.parent;
+                }
+            }
+            else if (!allWhite)
+            {
+                bool anySub = false;
+                foreach (var quad in Children)
+                {
+                    if (quad.unsubdivide())
+                    {
+                        anySub = true;
+                    }
+                }
+
+                if (anySub)
+                {
+                    return unsubdivide();
+                }
+
+                return false;
+            }
+
+            northWest = null;
+            northEast = null;
+            southEast = null;
+            southWest = null;
+
+            return true;
         }
 
         public IEnumerator<T> GetEnumerator()

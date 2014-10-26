@@ -40,7 +40,8 @@ namespace Quadtree.Tests
         [Fact()]
         public void SetInitialValueOnConstruct()
         {
-            var qt = new RegionQuadtree<int>(3, 1);
+            var qt = new RegionQuadtree<int>(3);
+            qt.Set(1);
             Assert.Equal(QuadType.Black, qt.Type);
         }
 
@@ -110,7 +111,8 @@ namespace Quadtree.Tests
         [Fact()]
         public void BlackQuadEnumeration()
         {
-            var qt = new RegionQuadtree<int>(3, 1);
+            var qt = new RegionQuadtree<int>(3);
+            qt.Set(1);
             Assert.Equal(1, qt.Count());
             Assert.Equal(1, qt.ElementAt(0));
 

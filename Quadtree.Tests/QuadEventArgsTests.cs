@@ -112,7 +112,8 @@ namespace Quadtree.Tests
         [Fact()]
         public void BlackQuadRemoveEventShouldBeCalledFourTimes()
         {
-            var qt = new RegionQuadtree<int>(3, 1);
+            var qt = new RegionQuadtree<int>(3);
+            qt.Set(1);
             var times = 0;
             qt.OnQuadRemoving += (s, a) =>
             {
@@ -130,7 +131,8 @@ namespace Quadtree.Tests
         [Fact()]
         public void BlackQuadRemoveEventShouldBeCalledSevenTimes()
         {
-            var qt = new RegionQuadtree<int>(3, 1);
+            var qt = new RegionQuadtree<int>(3);
+            qt.Set(1);
             var times = 0;
             qt.OnQuadRemoving += (s, a) =>
             {
@@ -146,7 +148,8 @@ namespace Quadtree.Tests
         [Fact()]
         public void BlackQuadRemoveEventShouldBeCalledFiveTimes()
         {
-            var qt = new RegionQuadtree<int>(3, 1);
+            var qt = new RegionQuadtree<int>(3);
+            qt.Set(1);
             var times = 0;
             qt.OnQuadRemoving += (s, a) =>
             {
@@ -162,7 +165,8 @@ namespace Quadtree.Tests
         [Fact()]
         public void BlackQuadAddEventShouldBeCalledTwelveTimes()
         {
-            var qt = new RegionQuadtree<int>(3, 1);
+            var qt = new RegionQuadtree<int>(3);
+            qt.Set(1);
             var times = 0;
             qt.OnQuadAdded += (s, a) =>
             {
@@ -182,7 +186,8 @@ namespace Quadtree.Tests
         [Fact()]
         public void BlackQuadAddEventShouldBeCalledTwentyTimes()
         {
-            var qt = new RegionQuadtree<int>(3, 1);
+            var qt = new RegionQuadtree<int>(3);
+            qt.Set(1);
             var times = 0;
             qt.OnQuadAdded += (s, a) =>
             {
