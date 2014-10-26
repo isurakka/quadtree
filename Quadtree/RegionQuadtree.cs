@@ -162,7 +162,7 @@ namespace Quadtree
                 {
                     if (par.OnQuadAdded != null)
                     {
-                        par.OnQuadAdded(this, new QuadEventArgs<T>(this));
+                        par.OnQuadAdded(par, new QuadEventArgs<T>(this));
                     }
 
                     par = par.parent;
@@ -200,6 +200,13 @@ namespace Quadtree
 
         public bool Set(ref Point2i point, ref T value)
         {
+            var ret = setInternal(ref point, ref value);
+            unsubdivide();
+            return ret;
+        }
+
+        private bool setInternal(ref Point2i point, ref T value)
+        {
             if (!aabb.Contains(point))
                 return false;
 
@@ -217,9 +224,24 @@ namespace Quadtree
             }
             else
             {
+                RegionQuadtree<T> par;
+                if (this.value != null && !value.Equals(this.value.Value))
+                {
+                    par = this;
+                    while (par != null)
+                    {
+                        if (par.OnQuadRemoving != null)
+                        {
+                            par.OnQuadRemoving(par, new QuadEventArgs<T>(this));
+                        }
+
+                        par = par.parent;
+                    }
+                }
+
                 this.value = value;
 
-                var par = this;
+                par = this;
                 while (par != null)
                 {
                     if (par.OnQuadAdded != null)
@@ -229,6 +251,8 @@ namespace Quadtree
 
                     par = par.parent;
                 }
+
+                
 
                 return true;
             }
@@ -286,6 +310,13 @@ namespace Quadtree
         }
 
         public bool Unset(ref Point2i point)
+        {
+            var ret = unsetInternal(ref point);
+            unsubdivide();
+            return ret;
+        }
+
+        private bool unsetInternal(ref Point2i point)
         {
             if (!aabb.Contains(point))
                 return false;
@@ -392,7 +423,7 @@ namespace Quadtree
                 return false;
 
             var northWestValue = northWest.value;
-            var allBlack = Type == QuadType.Black && Children.All(q => q.Type == QuadType.Black && northWestValue.Equals(q.value.Value));
+            var allBlack = Children.All(q => q.Type == QuadType.Black && northWestValue.Equals(q.value.Value));
             var allWhite = Children.All(q => q.Type == QuadType.White);
 
             if (allBlack)
