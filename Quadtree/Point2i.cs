@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Quadtree
 {
-    public struct Point2i
+    public struct Point2i : IEquatable<Point2i>
     {
         public int X;
         public int Y;
@@ -47,9 +47,39 @@ namespace Quadtree
             return new Point2i(v1.X * mult, v1.Y * mult);
         }
 
+        public static bool operator ==(Point2i v1, Point2i v2)
+        {
+            return v1.Equals(v2);
+        }
+
+        public static bool operator !=(Point2i v1, Point2i v2)
+        {
+            return !v1.Equals(v2);
+        }
+
         public override string ToString()
         {
             return "[" + X + "i, " + Y + "i]";
+        }
+
+        public bool Equals(Point2i other)
+        {
+            return (X == other.X) && (Y == other.Y);
+        }
+
+        public override bool Equals(object obj)
+        {
+            // Check for null values and compare run-time types.
+            if (obj == null || GetType() != obj.GetType())
+                return false;
+
+            var p = (Point2i)obj;
+            return Equals(p);
+        }
+
+        public override int GetHashCode()
+        {
+            return X ^ Y;   
         }
     }
 }
