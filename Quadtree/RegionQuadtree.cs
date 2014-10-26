@@ -42,51 +42,6 @@ namespace Quadtree
             }
         }
 
-        // TODO
-        /*
-        private bool reduce()
-        {
-            if (Type != QuadType.Grey)
-                return false;
-
-            var children = new List<RegionQuadtree<T>> { northWest, northEast, southEast, southWest };
-            var allFull = children.All(q => q.Type == QuadType.Black);
-            var allEmpty = children.All(q => q.Type == QuadType.White);
-
-            //allFull = false;
-            allEmpty = false; // empty reducing doesn't work so it is disabled
-
-            if (allFull)
-            {
-                children.ForEach(q =>
-                {
-                    q.DestroyAct(q.value);
-                    q.value = default(T);
-                });
-                value = CreateFunc(aabb);
-            }
-
-            if (allEmpty)
-            {
-                value = default(T);
-            }
-
-            if (allFull || allEmpty)
-            {
-                northWest = null;
-                northEast = null;
-                southEast = null;
-                southWest = null;
-                return true;
-            }
-
-            if (children.Any(q => q.reduce()))
-                return reduce();
-
-            return false;
-        }
-        */
-
         public QuadType Type
         {
             get
