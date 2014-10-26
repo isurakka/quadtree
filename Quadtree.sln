@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quadtree", "Quadtree\Quadtr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quadtree.Tests", "Quadtree.Tests\Quadtree.Tests.csproj", "{B60D9F49-8B96-4303-B948-71348697D077}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quadtree.Examples", "QuadTree.Examples\Quadtree.Examples.csproj", "{27322BB2-88DC-4A00-97C5-D4916B9498A3}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,18 +43,6 @@ Global
 		{B60D9F49-8B96-4303-B948-71348697D077}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{B60D9F49-8B96-4303-B948-71348697D077}.Release|x64.ActiveCfg = Release|Any CPU
 		{B60D9F49-8B96-4303-B948-71348697D077}.Release|x86.ActiveCfg = Release|Any CPU
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Debug|Mixed Platforms.ActiveCfg = Debug|x64
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Debug|Mixed Platforms.Build.0 = Debug|x64
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Release|Mixed Platforms.ActiveCfg = Release|x64
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Release|Mixed Platforms.Build.0 = Release|x64
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Release|x64.ActiveCfg = Release|Any CPU
-		{27322BB2-88DC-4A00-97C5-D4916B9498A3}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
