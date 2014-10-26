@@ -203,6 +203,7 @@ namespace Quadtree.Examples
                 new Tuple<string, Color>("Turquoise", new Color(26, 188, 156)),
                 new Tuple<string, Color>("Purple", new Color(155, 89, 182)),
                 new Tuple<string, Color>("Orange", new Color(230, 126, 34)),
+                new Tuple<string, Color>("White", Color.White),
             };
 
             rw.KeyPressed += (s, a) =>
@@ -230,6 +231,14 @@ namespace Quadtree.Examples
                     case Keyboard.Key.Num7:
                         selection = 6;
                         break;
+                    case Keyboard.Key.Num8:
+                        selection = 7;
+                        break;
+                    case Keyboard.Key.R:
+                    {
+                        quadtree.Set(Color.White);
+                        break;
+                    }
                 }
             };
 
@@ -238,7 +247,7 @@ namespace Quadtree.Examples
 
             helpText = new Text("", fontNormal, 20u);
             helpText.Position = new Vector2f(512 + 40, -40f + 34f);
-            helpText.DisplayedString = "Use numbers 1 - 7 to select a color.\n\nLeft click to place current color.\n\nRight click to remove.";
+            helpText.DisplayedString = "Use numbers 1 - 8 to select a color.\n\nLeft click to place current color.\n\nRight click to remove.\n\nR to reset.";
         }
     }
 }
