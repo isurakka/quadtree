@@ -104,7 +104,6 @@ namespace Quadtree
             }
         }
 
-        //public delegate void CreateQuadHandler(object sender, EventArgs args);
         public event EventHandler<QuadEventArgs<T>> OnQuadAdded;
         public event EventHandler<QuadEventArgs<T>> OnQuadRemoving;
 
