@@ -1,3 +1,0 @@
-[submodule "QuadTree.Examples"]
-	path = QuadTree.Examples
-	url = git@github.com:isurakka/quadtree-examples.git
