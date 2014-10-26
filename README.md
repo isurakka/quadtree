@@ -1,3 +1,4 @@
 ## TODO
-- Linear quadtree
+- Clean up region quadtree
+- Linear region quadtree
 - Connected-component labeling
