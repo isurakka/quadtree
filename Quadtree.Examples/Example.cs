@@ -21,13 +21,19 @@ namespace Quadtree.Examples
 
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
+        const int qtResolution = 6;
         const float qtMultiplier = 8f;
-        Dictionary<AABB2i, RectangleShape> rects;
+        Dictionary<AABB2i, QuadData> rects;
 
         int selection = 0;
         List<Tuple<string, Color>> selections;
         Text selectionText;
         Text helpText;
+
+        VertexArray quadVertexArray = new VertexArray(PrimitiveType.Quads);
+        VertexArray outlineVertexArray = new VertexArray(PrimitiveType.Lines);
+        List<uint> freeQuadIndexes = new List<uint>();
+        List<uint> freeOutlineIndexes = new List<uint>(); 
 
         public Example()
         {
@@ -75,20 +81,24 @@ namespace Quadtree.Examples
                 rw.Draw(selectionText);
                 rw.Draw(helpText);
 
-                foreach (var rect in rects)
-                {
-                    rw.Draw(rect.Value);
-                }
+                rw.Draw(quadVertexArray);
+                rw.Draw(outlineVertexArray);
 
                 rw.Display();
             }
         }
 
+        struct QuadData
+        {
+            public uint quadIndex;
+            public uint outlineIndex;
+        }
+
         private void initQuadtree()
         {
-            quadtree = new RegionQuadtree<Color>(6);
+            quadtree = new RegionQuadtree<Color>(qtResolution);
 
-            rects = new Dictionary<AABB2i, RectangleShape>();
+            rects = new Dictionary<AABB2i, QuadData>();
 
             quadtree.OnQuadAdded += (s, a) =>
             {
@@ -96,16 +106,86 @@ namespace Quadtree.Examples
                 var pos = new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y) * qtMultiplier;
                 var size = new Vector2f(aabb.Width, aabb.Height) * qtMultiplier;
                 var rect = new RectangleShape(size);
-                rect.Position = pos;
-                rect.FillColor = a.Value;
-                rect.OutlineThickness = -1;
-                rect.OutlineColor = new Color(0, 0, 0, 60);
-                rects[aabb] = rect;
-                //rects.Add(aabb, rect);
+                var quadColor = a.Value;
+                var outlineColor = new Color(0, 0, 0, 80);
+
+                var rectPoints = new List<Vector2f>
+                {
+                    new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y) * qtMultiplier,
+                    new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y) * qtMultiplier,
+                    new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
+                    new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
+                };
+
+                var outlinePoints = new List<Vector2f>
+                {
+                    rectPoints[0] + new Vector2f(0.5f, 0.5f),
+                    rectPoints[1] + new Vector2f(-0.5f, 0.5f),
+                    rectPoints[2] + new Vector2f(-0.5f, -0.5f),
+                    rectPoints[3] + new Vector2f(0.5f, -0.5f),
+                };
+
+                var quadData = new QuadData();
+
+                // quad
+                if (freeQuadIndexes.Count > 0)
+                {
+                    quadData.quadIndex = freeQuadIndexes[freeQuadIndexes.Count - 1];
+                    freeQuadIndexes.RemoveAt(freeQuadIndexes.Count - 1);
+                }
+                else
+                {
+                    quadData.quadIndex = quadVertexArray.VertexCount;
+                    quadVertexArray.Resize(quadVertexArray.VertexCount + 4);
+                }
+
+                for (uint i = 0; i < 4; i++)
+                {
+                    quadVertexArray[quadData.quadIndex + i] = new Vertex(rectPoints[(int)i], quadColor);
+                }
+
+                // outline
+                if (freeOutlineIndexes.Count > 0)
+                {
+                    quadData.outlineIndex = freeOutlineIndexes[freeOutlineIndexes.Count - 1];
+                    freeOutlineIndexes.RemoveAt(freeOutlineIndexes.Count - 1);
+                }
+                else
+                {
+                    quadData.outlineIndex = outlineVertexArray.VertexCount;
+                    outlineVertexArray.Resize(outlineVertexArray.VertexCount + 8);
+                }
+
+                outlineVertexArray[quadData.outlineIndex] = new Vertex(outlinePoints[0], outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 1] = new Vertex(outlinePoints[1], outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 2] = new Vertex(outlinePoints[1], outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 3] = new Vertex(outlinePoints[2], outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 4] = new Vertex(outlinePoints[2], outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 5] = new Vertex(outlinePoints[3], outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 6] = new Vertex(outlinePoints[3], outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 7] = new Vertex(outlinePoints[0], outlineColor);
+
+                rects.Add(aabb, quadData);
             };
 
             quadtree.OnQuadRemoving += (s, a) =>
             {
+                var quadData = rects[a.AABB];
+
+                // quad
+                freeQuadIndexes.Add(quadData.quadIndex);
+                for (uint i = 0; i < 4; i++)
+                {
+                    quadVertexArray[quadData.quadIndex + i] = new Vertex(new Vector2f(), Color.Transparent);
+                }
+
+                // outline
+                freeOutlineIndexes.Add(quadData.outlineIndex);
+                for (uint i = 0; i < 8; i++)
+                {
+                    outlineVertexArray[quadData.outlineIndex + i] = new Vertex(new Vector2f(), Color.Transparent);
+                }
+
                 rects.Remove(a.AABB);
             };
 
