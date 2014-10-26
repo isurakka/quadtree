@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Quadtree
 {
-    public struct AABB2i
+    public struct AABB2i : IEquatable<AABB2i>
     {
         public Point2i LowerBound;
         public Point2i UpperBound;
@@ -45,6 +45,36 @@ namespace Quadtree
         {
             return (point.X >= (LowerBound.X) && point.X < (UpperBound.X) &&
                    (point.Y >= (LowerBound.Y) && point.Y < (UpperBound.Y)));
+        }
+
+        public static bool operator ==(AABB2i v1, AABB2i v2)
+        {
+            return v1.Equals(v2);
+        }
+
+        public static bool operator !=(AABB2i v1, AABB2i v2)
+        {
+            return !v1.Equals(v2);
+        }
+
+        public bool Equals(AABB2i other)
+        {
+            return LowerBound == other.LowerBound && UpperBound == other.UpperBound;
+        }
+
+        public override bool Equals(object obj)
+        {
+            // Check for null values and compare run-time types.
+            if (obj == null || GetType() != obj.GetType())
+                return false;
+
+            var p = (AABB2i)obj;
+            return Equals(p);
+        }
+
+        public override int GetHashCode()
+        {
+            return LowerBound.GetHashCode() ^ UpperBound.GetHashCode();
         }
     }
 }
