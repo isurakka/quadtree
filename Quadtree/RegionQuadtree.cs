@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,17 +21,15 @@ namespace Quadtree
         private RegionQuadtree<T> southEast; // 1
         private RegionQuadtree<T> southWest; // 0
 
-        private RegionQuadtree<T> parent;
-
+        // For convince (iterate through children)
         private List<RegionQuadtree<T>> children;
+
+        private RegionQuadtree<T> parent;
 
         private AABB2i aabb;
         public AABB2i AABB
         {
-            get
-            {
-                return aabb;
-            }
+            get { return aabb; }
         }
 
         public QuadType Type
@@ -60,7 +59,7 @@ namespace Quadtree
 
             public AABB2i AABB
             {
-                get { return quadTree.AABB; }
+                get { return quadTree.aabb; }
             }
 
             public T Value
@@ -147,8 +146,6 @@ namespace Quadtree
             Unset();
             //unsetInternal();
 
-            RegionQuadtree<T> par;
-            
             this.value = value;
 
             propagateEvent(true);
@@ -179,11 +176,13 @@ namespace Quadtree
                     }
                 }
             }
+
             var ret = setAABBInternal(ref testAABB, ref value);
             if (anySet || ret)
             {
                 unsubdivide();
             }
+
             return ret;
         }
 
@@ -199,6 +198,7 @@ namespace Quadtree
             {
                 unsubdivide();
             }
+
             return ret;
         }
 
