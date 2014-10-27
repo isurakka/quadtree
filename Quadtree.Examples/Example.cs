@@ -107,7 +107,7 @@ namespace Quadtree.Examples
                 var size = new Vector2f(aabb.Width, aabb.Height) * qtMultiplier;
                 var rect = new RectangleShape(size);
                 var quadColor = a.Value;
-                var outlineColor = new Color(0, 0, 0, 80);
+                var outlineColor = new Color(0, 0, 0, 100);
 
                 var rectPoints = new List<Vector2f>
                 {
@@ -117,12 +117,13 @@ namespace Quadtree.Examples
                     new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
                 };
 
+                const float outlineIntend = 1f;
                 var outlinePoints = new List<Vector2f>
                 {
-                    rectPoints[0] + new Vector2f(0.5f, 0.5f),
-                    rectPoints[1] + new Vector2f(-0.5f, 0.5f),
-                    rectPoints[2] + new Vector2f(-0.5f, -0.5f),
-                    rectPoints[3] + new Vector2f(0.5f, -0.5f),
+                    rectPoints[0] + new Vector2f(outlineIntend, outlineIntend),
+                    rectPoints[1] + new Vector2f(-outlineIntend, outlineIntend),
+                    rectPoints[2] + new Vector2f(-outlineIntend, -outlineIntend),
+                    rectPoints[3] + new Vector2f(outlineIntend, -outlineIntend),
                 };
 
                 var quadData = new QuadData();
@@ -156,14 +157,14 @@ namespace Quadtree.Examples
                     outlineVertexArray.Resize(outlineVertexArray.VertexCount + 8);
                 }
 
-                outlineVertexArray[quadData.outlineIndex] = new Vertex(outlinePoints[0], outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 1] = new Vertex(outlinePoints[1], outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 2] = new Vertex(outlinePoints[1], outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 3] = new Vertex(outlinePoints[2], outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 4] = new Vertex(outlinePoints[2], outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 5] = new Vertex(outlinePoints[3], outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 6] = new Vertex(outlinePoints[3], outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 7] = new Vertex(outlinePoints[0], outlineColor);
+                outlineVertexArray[quadData.outlineIndex] =     new Vertex(outlinePoints[0] + new Vector2f(-outlineIntend, 0f), outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 1] = new Vertex(outlinePoints[1] + new Vector2f(-outlineIntend, 0f), outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 2] = new Vertex(outlinePoints[1] + new Vector2f(0f, -outlineIntend), outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 3] = new Vertex(outlinePoints[2] + new Vector2f(0f, -outlineIntend), outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 4] = new Vertex(outlinePoints[2] + new Vector2f(outlineIntend, 0f), outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 5] = new Vertex(outlinePoints[3] + new Vector2f(outlineIntend, 0f), outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 6] = new Vertex(outlinePoints[3] + new Vector2f(0f, outlineIntend), outlineColor);
+                outlineVertexArray[quadData.outlineIndex + 7] = new Vertex(outlinePoints[0] + new Vector2f(0f, outlineIntend), outlineColor);
 
                 rects.Add(aabb, quadData);
             };
