@@ -184,7 +184,7 @@ namespace Quadtree.Examples
             quadtree.OnQuadRemoving += (s, a) =>
             {
                 var quadData = rects[a.AABB];
-
+                
                 // quad
                 freeQuadIndexes.Add(quadData.quadIndex);
                 for (uint i = 0; i < 4; i++)
@@ -200,6 +200,23 @@ namespace Quadtree.Examples
                 }
 
                 rects.Remove(a.AABB);
+            };
+
+            quadtree.OnQuadChanged += (s, a) =>
+            {
+                var quadData = rects[a.AABB];
+                var quadColor = a.Value;
+                var outlineColor = new Color(0, 0, 0, 100);
+
+                for (uint i = 0; i < 4; i++)
+                {
+                    quadVertexArray[quadData.quadIndex + i] = new Vertex(quadVertexArray[quadData.quadIndex + i].Position, quadColor);
+                }
+
+                for (uint i = 0; i < 8; i++)
+                {
+                    outlineVertexArray[quadData.outlineIndex + i] = new Vertex(outlineVertexArray[quadData.outlineIndex + i].Position, outlineColor);
+                }
             };
 
             quadtree.Set(Color.White);

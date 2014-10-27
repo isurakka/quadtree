@@ -51,6 +51,7 @@ namespace Quadtree
 
         public event EventHandler<QuadEventArgs<T>> OnQuadAdded;
         public event EventHandler<QuadEventArgs<T>> OnQuadRemoving;
+        public event EventHandler<QuadChangedEventArgs<T>> OnQuadChanged;
 
         public class QuadEventArgs<T> : EventArgs
             where T: struct
@@ -70,6 +71,22 @@ namespace Quadtree
             public QuadEventArgs(RegionQuadtree<T> quadTree)
             {
                 this.quadTree = quadTree;
+            }
+        }
+
+        public class QuadChangedEventArgs<T> : QuadEventArgs<T>
+            where T : struct
+        {
+            private T oldValue;
+            public T OldValue
+            {
+                get { return oldValue; }
+            }
+
+            public QuadChangedEventArgs(RegionQuadtree<T> quadTree, T oldValue)
+                : base(quadTree)
+            {
+                this.oldValue = oldValue;
             }
         }
 
@@ -100,20 +117,48 @@ namespace Quadtree
 
             if (value != null)
             {
-                propagateEvent(true);
+                propagateEvent(EventType.Added);
             }
         }
 
-        private void propagateEvent(bool added, RegionQuadtree<T> start = null)
+        private enum EventType
+        {
+            Added,
+            Removing,
+            Changed,
+        }
+
+        private void propagateEvent(EventType eventType, RegionQuadtree<T> start = null, T? oldValue = null)
         {
             var always = start ?? this;
             var par = start ?? this;
             while (par != null)
             {
-                var eve = added ? par.OnQuadAdded : par.OnQuadRemoving;
-                if (eve != null)
+                if (eventType == EventType.Added)
                 {
-                    eve(par, new QuadEventArgs<T>(always));
+                    if (par.OnQuadAdded != null)
+                    {
+                        par.OnQuadAdded(par, new QuadEventArgs<T>(always));
+                    }
+                }
+                else if (eventType == EventType.Removing)
+                {
+                    if (par.OnQuadRemoving != null)
+                    {
+                        par.OnQuadRemoving(par, new QuadEventArgs<T>(always));
+                    }
+                }
+                else
+                {
+                    if (par.OnQuadChanged != null)
+                    {
+                        if (oldValue == null)
+                        {
+                            throw new ArgumentException("Old value shouldn't be null");
+                        }
+
+                        par.OnQuadChanged(par, new QuadChangedEventArgs<T>(always, oldValue.Value));
+                    }
                 }
 
                 par = par.parent;
@@ -137,9 +182,20 @@ namespace Quadtree
 
         private bool setInternal(ref T value)
         {
-            if (Type == QuadType.Black && this.value.Value.Equals(value))
+            if (Type == QuadType.Black)
             {
-                return false;
+                if (this.value.Value.Equals(value))
+                {
+                    return false;
+                }
+                else
+                {
+                    var oldValue = this.value;
+                    this.value = value;
+                    propagateEvent(EventType.Changed, null, oldValue);
+                    return true;
+                }
+                
             }
 
             // TODO: Figure out why unsetInternal can't be used here.
@@ -148,7 +204,7 @@ namespace Quadtree
 
             this.value = value;
 
-            propagateEvent(true);
+            propagateEvent(EventType.Added);
 
             return true;
         }
@@ -317,7 +373,7 @@ namespace Quadtree
 
             if (Type == QuadType.Black)
             {
-                propagateEvent(false);
+                propagateEvent(EventType.Removing);
 
                 this.value = null;
 
@@ -372,7 +428,7 @@ namespace Quadtree
             }
             else
             {
-                propagateEvent(false);
+                propagateEvent(EventType.Removing);
 
                 this.value = null;
 
@@ -414,7 +470,7 @@ namespace Quadtree
 
             if (this.value != null)
             {
-                propagateEvent(false);
+                propagateEvent(EventType.Removing);
 
                 value = null;
             }
@@ -449,15 +505,14 @@ namespace Quadtree
 
             if (allBlack)
             {
-                RegionQuadtree<T> par;
                 foreach (var quad in children)
                 {
-                    propagateEvent(false, quad);
+                    propagateEvent(EventType.Removing, quad);
                 }
 
                 this.value = northWestValue;
 
-                propagateEvent(true);
+                propagateEvent(EventType.Added);
             }
             else if (!allWhite)
             {
