@@ -132,11 +132,18 @@ namespace Quadtree
 
         public void Set(ref T value)
         {
+            if (Type == QuadType.Black && this.value.Value.Equals(value))
+            {
+                return;
+            }
+
             Unset();
 
+            RegionQuadtree<T> par;
+            
             this.value = value;
 
-            var par = this;
+            par = this;
             while (par != null)
             {
                 if (par.OnQuadAdded != null)
@@ -146,6 +153,86 @@ namespace Quadtree
 
                 par = par.parent;
             }
+        }
+
+        public bool SetCircle(Point2i point, int radius, T value)
+        {
+            var rectSize = (int)(radius / Math.Sqrt(2));   
+            var testAABB = new AABB2i(point - new Point2i(rectSize, rectSize), point + new Point2i(rectSize, rectSize));
+            for (int i = point.X - radius; i <= point.X + radius; i++)
+            {
+                for (int j = point.Y - radius; j <= point.Y + radius; j++)
+                {
+                    var currentPoint = new Point2i(i, j);
+                    if ((point - currentPoint).Length() < rectSize)
+                        continue;
+
+                    if ((point - currentPoint).Length() < radius)
+                    {
+                        Set(ref currentPoint, ref value);
+                    }
+                }
+            }
+            var ret = setAABBInternal(ref testAABB, ref value);
+            unsubdivide();
+            return ret;
+        }
+
+        public bool SetAABB(AABB2i aabb, T value)
+        {
+            return SetAABB(ref aabb, ref value);
+        }
+
+        public bool SetAABB(ref AABB2i aabb, ref T value)
+        {
+            var ret = setAABBInternal(ref aabb, ref value);
+            unsubdivide();
+            return ret;
+        }
+
+        private bool setAABBInternal(ref AABB2i aabb, ref T value, Predicate<AABB2i> predicate = null)
+        {
+            bool contains = aabb.Contains(ref this.aabb);
+            bool intersects = aabb.Intersects(ref this.aabb);
+
+            if (!contains && intersects)
+            {
+                var canSub = depth < resolution;
+                if (canSub && Type != QuadType.Grey)
+                {
+                    subdivide();
+                }
+
+                if (canSub)
+                {
+                    foreach (var quad in Children)
+                    {
+                        quad.setAABBInternal(ref aabb, ref value, predicate);
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+
+                return true;
+            }
+            else if (contains)
+            {
+                if (predicate != null && !predicate(this.aabb))
+                {
+                    return false;
+                }
+
+                Set(ref value);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+
+            throw new InvalidOperationException("Set didn't fail nor succeed. This is not supposed to happen!");
         }
 
         public bool Set(Point2i point, T value)

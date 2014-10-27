@@ -27,7 +27,7 @@ namespace Quadtree
             get { return UpperBound.Y - LowerBound.Y; }
         }
 
-        public bool Intersects(AABB2i other)
+        public bool Intersects(ref AABB2i other)
         {
             var d1 = other.LowerBound - UpperBound;
             var d2 = LowerBound - other.UpperBound;
@@ -45,6 +45,16 @@ namespace Quadtree
         {
             return (point.X >= (LowerBound.X) && point.X < (UpperBound.X) &&
                    (point.Y >= (LowerBound.Y) && point.Y < (UpperBound.Y)));
+        }
+
+        public bool Contains(ref AABB2i aabb)
+        {
+            bool result = true;
+            result = result && LowerBound.X <= aabb.LowerBound.X;
+            result = result && LowerBound.Y <= aabb.LowerBound.Y;
+            result = result && aabb.UpperBound.X <= UpperBound.X;
+            result = result && aabb.UpperBound.Y <= UpperBound.Y;
+            return result;
         }
 
         public static bool operator ==(AABB2i v1, AABB2i v2)

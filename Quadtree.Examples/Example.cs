@@ -25,6 +25,7 @@ namespace Quadtree.Examples
         const float qtMultiplier = 8f;
         Dictionary<AABB2i, QuadData> rects;
 
+        int selectionRadius = 40;
         int selection = 0;
         List<Tuple<string, Color>> selections;
         Text selectionText;
@@ -60,18 +61,27 @@ namespace Quadtree.Examples
                 sw.Restart();
 
                 // Update
-                var worldMouse = rw.MapPixelToCoords(Mouse.GetPosition(rw));
-                var sfmlPos = worldMouse * (1f / qtMultiplier);
-                var qtPos = new Point2i((int)sfmlPos.X, (int)sfmlPos.Y);
-                if (Mouse.IsButtonPressed(Mouse.Button.Left))
+                bool anyInput = Mouse.IsButtonPressed(Mouse.Button.Left) || Mouse.IsButtonPressed(Mouse.Button.Right);
+                if (anyInput)
                 {
-                    quadtree.Set(qtPos, selections[selection].Item2);
+                    var worldMouse = rw.MapPixelToCoords(Mouse.GetPosition(rw));
+                    var sfmlPos = worldMouse * (1f / qtMultiplier);
+                    var aabbMin = (worldMouse - new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
+                    var aabbMax = (worldMouse + new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
+                    var qtAABB = new AABB2i(new Point2i((int)aabbMin.X, (int)aabbMin.Y), new Point2i((int)aabbMax.X, (int)aabbMax.Y));
+                    var qtPos = new Point2i((int)sfmlPos.X, (int)sfmlPos.Y);
+                    if (Mouse.IsButtonPressed(Mouse.Button.Left))
+                    {
+                        //quadtree.Set(qtPos, selections[selection].Item2);
+                        quadtree.SetCircle(qtPos, (int)(selectionRadius / qtMultiplier), selections[selection].Item2);
+                        //quadtree.SetAABB(qtAABB, selections[selection].Item2);
+                    }
+                    else if (Mouse.IsButtonPressed(Mouse.Button.Right))
+                    {
+                        quadtree.Unset(qtPos);
+                    }
                 }
-                else if (Mouse.IsButtonPressed(Mouse.Button.Right))
-                {
-                    quadtree.Unset(qtPos);
-                }
-
+                
                 rw.Clear();
 
                 // Draw
