@@ -21,8 +21,8 @@ namespace Quadtree.Examples
 
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
-        const int qtResolution = 6;
-        const float qtMultiplier = 8f;
+        const int qtResolution = 7;
+        const float qtMultiplier = 4f;
         Dictionary<AABB2i, QuadData> rects;
 
         int selectionRadius = 40;
