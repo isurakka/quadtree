@@ -29,6 +29,7 @@ namespace Quadtree.Examples
         int selection = 0;
         List<Tuple<string, Color>> selections;
         Text selectionText;
+        Text radiusText;
         Text helpText;
 
         VertexArray quadVertexArray = new VertexArray(PrimitiveType.Quads);
@@ -89,6 +90,7 @@ namespace Quadtree.Examples
                 selectionText.DisplayedString = sel.Item1;
                 selectionText.Color = sel.Item2;
                 rw.Draw(selectionText);
+                rw.Draw(radiusText);
                 rw.Draw(helpText);
 
                 rw.Draw(quadVertexArray);
@@ -253,12 +255,24 @@ namespace Quadtree.Examples
                 }
             };
 
+            rw.MouseWheelMoved += (s, a) =>
+            {
+                selectionRadius += 10 * a.Delta;
+                if (selectionRadius < 0)
+                    selectionRadius = 0;
+
+                radiusText.DisplayedString = "Radius " + selectionRadius;
+            };
+
             selectionText = new Text("", fontBold, 32u);
             selectionText.Position = new Vector2f(0f, -40f);
 
+            radiusText = new Text("Radius " + selectionRadius, fontBold, 32u);
+            radiusText.Position = new Vector2f(312f, -40f);
+
             helpText = new Text("", fontNormal, 20u);
             helpText.Position = new Vector2f(512 + 40, -40f + 34f);
-            helpText.DisplayedString = "Use numbers 1 - 8 to select a color.\n\nLeft click to place current color.\n\nRight click to remove.\n\nR to reset.";
+            helpText.DisplayedString = "Use numbers 1 - 8 to select a color.\n\nLeft click to place current color.\n\nRight click to remove.\n\nMouse wheel to change radius.\n\nR to reset.";
         }
     }
 }
