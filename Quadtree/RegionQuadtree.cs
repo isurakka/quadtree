@@ -278,10 +278,7 @@ namespace Quadtree
                 {
                     foreach (var quad in children)
                     {
-                        if (quad.setAABBInternal(ref aabb, ref value))
-                        {
-                            anyChild = true;
-                        }
+                        anyChild |= quad.setAABBInternal(ref aabb, ref value);
                     }
                 }
                 else
@@ -385,10 +382,7 @@ namespace Quadtree
                 bool any = false;
                 foreach (var quad in children)
                 {
-                    if (quad.unsetInternal())
-                    {
-                        any = true;
-                    }
+                    any |= quad.unsetInternal();
                 }
 
                 return any;
@@ -519,10 +513,7 @@ namespace Quadtree
                 bool anySub = false;
                 foreach (var quad in children)
                 {
-                    if (quad.unsubdivide())
-                    {
-                        anySub = true;
-                    }
+                    anySub |= quad.unsubdivide();
                 }
 
                 if (anySub)
