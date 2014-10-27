@@ -27,6 +27,10 @@ namespace Quadtree
         private RegionQuadtree<T> parent;
 
         private AABB2i aabb;
+        public AABB2i AABB
+        {
+            get { return aabb; }
+        }
 
         public QuadType Type
         {
