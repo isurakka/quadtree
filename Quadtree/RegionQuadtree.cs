@@ -112,16 +112,23 @@ namespace Quadtree
 
             if (value != null)
             {
-                var par = this;
-                while (par != null)
-                {
-                    if (par.OnQuadAdded != null)
-                    {
-                        par.OnQuadAdded(par, new QuadEventArgs<T>(this));
-                    }
+                propagateEvent(true);
+            }
+        }
 
-                    par = par.parent;
+        private void propagateEvent(bool added, RegionQuadtree<T> start = null)
+        {
+            var always = start ?? this;
+            var par = start ?? this;
+            while (par != null)
+            {
+                var eve = added ? par.OnQuadAdded : par.OnQuadRemoving;
+                if (eve != null)
+                {
+                    eve(par, new QuadEventArgs<T>(always));
                 }
+
+                par = par.parent;
             }
         }
 
@@ -143,16 +150,7 @@ namespace Quadtree
             
             this.value = value;
 
-            par = this;
-            while (par != null)
-            {
-                if (par.OnQuadAdded != null)
-                {
-                    par.OnQuadAdded(par, new QuadEventArgs<T>(this));
-                }
-
-                par = par.parent;
-            }
+            propagateEvent(true);
         }
 
         public bool SetCircle(Point2i point, int radius, T value)
@@ -269,32 +267,12 @@ namespace Quadtree
                 RegionQuadtree<T> par;
                 if (this.value != null && !value.Equals(this.value.Value))
                 {
-                    par = this;
-                    while (par != null)
-                    {
-                        if (par.OnQuadRemoving != null)
-                        {
-                            par.OnQuadRemoving(par, new QuadEventArgs<T>(this));
-                        }
-
-                        par = par.parent;
-                    }
+                    propagateEvent(false);
                 }
 
                 this.value = value;
 
-                par = this;
-                while (par != null)
-                {
-                    if (par.OnQuadAdded != null)
-                    {
-                        par.OnQuadAdded(par, new QuadEventArgs<T>(this));
-                    }
-
-                    par = par.parent;
-                }
-
-                
+                propagateEvent(true);
 
                 return true;
             }
@@ -321,16 +299,7 @@ namespace Quadtree
 
             if (Type == QuadType.Black)
             {
-                var par = this;
-                while (par != null)
-                {
-                    if (par.OnQuadRemoving != null)
-                    {
-                        par.OnQuadRemoving(par, new QuadEventArgs<T>(this));
-                    }
-
-                    par = par.parent;
-                }
+                propagateEvent(false);
 
                 this.value = null;
             }
@@ -377,16 +346,7 @@ namespace Quadtree
             }
             else
             {
-                var par = this;
-                while (par != null)
-                {
-                    if (par.OnQuadRemoving != null)
-                    {
-                        par.OnQuadRemoving(par, new QuadEventArgs<T>(this));
-                    }
-
-                    par = par.parent;
-                }
+                propagateEvent(false);
 
                 this.value = null;
 
@@ -406,27 +366,6 @@ namespace Quadtree
             throw new InvalidOperationException("This is not supposed to happen!");
         }
 
-        /*
-        public bool SetCircle(ref Point2i point, ref int radius, ref bool exists)
-        {
-            for (int i = point.X - radius; i <= point.X + radius; i++)
-            {
-                for (int j = point.Y - radius; j <= point.Y + radius; j++)
-                {
-                    var currentPoint = new Point2i(i, j);
-                    if ((point - currentPoint).Length() <= radius)
-                    {
-                        Set(ref currentPoint, ref exists);
-                    }
-                }
-            }
-
-            reduce();
-
-            return true;
-        }
-        */
-
         private void subdivide()
         {
             northWest = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
@@ -444,16 +383,7 @@ namespace Quadtree
 
             if (value != null)
             {
-                var par = this;
-                while (par != null)
-                {
-                    if (par.OnQuadRemoving != null)
-                    {
-                        par.OnQuadRemoving(par, new QuadEventArgs<T>(this));
-                    }
-
-                    par = par.parent;
-                }
+                propagateEvent(false);
 
                 value = null;
             }
@@ -473,30 +403,12 @@ namespace Quadtree
                 RegionQuadtree<T> par;
                 foreach (var quad in Children)
                 {
-                    par = quad;
-                    while (par != null)
-                    {
-                        if (par.OnQuadRemoving != null)
-                        {
-                            par.OnQuadRemoving(par, new QuadEventArgs<T>(quad));
-                        }
-
-                        par = par.parent;
-                    }
+                    propagateEvent(false, quad);
                 }
 
                 this.value = northWestValue;
 
-                par = this;
-                while (par != null)
-                {
-                    if (par.OnQuadAdded != null)
-                    {
-                        par.OnQuadAdded(par, new QuadEventArgs<T>(this));
-                    }
-
-                    par = par.parent;
-                }
+                propagateEvent(true);
             }
             else if (!allWhite)
             {
