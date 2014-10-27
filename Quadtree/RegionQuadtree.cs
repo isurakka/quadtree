@@ -81,8 +81,6 @@ namespace Quadtree
 
             this.resolution = resolution;
             this.depth = 0;
-            this.value = null;
-            this.parent = null;
 
             var size = (int)Math.Pow(2, resolution);
             if (size < 0)
@@ -130,12 +128,24 @@ namespace Quadtree
 
         public bool Set(ref T value)
         {
+            var ret = setInternal(ref value);
+            if (ret)
+            {
+                unsubdivide();
+            }
+            return ret;
+        }
+
+        private bool setInternal(ref T value)
+        {
             if (Type == QuadType.Black && this.value.Value.Equals(value))
             {
                 return false;
             }
 
+            // TODO: Figure out why unsetInternal can't be used here.
             Unset();
+            //unsetInternal();
 
             RegionQuadtree<T> par;
             
@@ -192,7 +202,7 @@ namespace Quadtree
             return ret;
         }
 
-        private bool setAABBInternal(ref AABB2i aabb, ref T value, Predicate<AABB2i> predicate = null)
+        private bool setAABBInternal(ref AABB2i aabb, ref T value)
         {
             bool contains = aabb.Contains(ref this.aabb);
             bool intersects = aabb.Intersects(ref this.aabb);
@@ -212,7 +222,7 @@ namespace Quadtree
                 {
                     foreach (var quad in children)
                     {
-                        if (quad.setAABBInternal(ref aabb, ref value, predicate))
+                        if (quad.setAABBInternal(ref aabb, ref value))
                         {
                             anyChild = true;
                         }
@@ -227,12 +237,7 @@ namespace Quadtree
             }
             else if (contains)
             {
-                if (predicate != null && !predicate(this.aabb))
-                {
-                    return false;
-                }
-
-                return Set(ref value);
+                return setInternal(ref value);
             }
             else
             {
@@ -276,22 +281,12 @@ namespace Quadtree
             }
             else
             {
-                RegionQuadtree<T> par;
-                if (this.value != null && !value.Equals(this.value.Value))
-                {
-                    propagateEvent(false);
-                }
-
-                this.value = value;
-
-                propagateEvent(true);
-
-                return true;
+                return setInternal(ref value);
             }
 
             foreach (var quad in children)
             {
-                if (quad.Set(ref point, ref value))
+                if (quad.setInternal(ref point, ref value))
                 {
                     return true;
                 }
@@ -302,11 +297,22 @@ namespace Quadtree
             throw new InvalidOperationException("Set didn't fail nor succeed. This is not supposed to happen!");
         }
 
-        public void Unset()
+        public bool Unset()
+        {
+            var ret = unsetInternal();
+            if (ret)
+            {
+                unsubdivide();
+            }
+
+            return ret;
+        }
+
+        private bool unsetInternal()
         {
             if (Type == QuadType.White)
             {
-                return;
+                return false;
             }
 
             if (Type == QuadType.Black)
@@ -314,17 +320,25 @@ namespace Quadtree
                 propagateEvent(false);
 
                 this.value = null;
+
+                return true;
             }
 
             if (Type == QuadType.Grey)
             {
+                bool any = false;
                 foreach (var quad in children)
                 {
-                    quad.Unset();
+                    if (quad.unsetInternal())
+                    {
+                        any = true;
+                    }
                 }
+
+                return any;
             }
 
-            unsubdivide();
+            throw new InvalidOperationException("This is not supposed to happen!");
         }
 
         public bool Unset(Point2i point)
@@ -398,7 +412,7 @@ namespace Quadtree
                 northWest, northEast, southEast, southWest
             };
 
-            if (value != null)
+            if (this.value != null)
             {
                 propagateEvent(false);
 
@@ -416,8 +430,8 @@ namespace Quadtree
             bool allBlack = true;
             bool allWhite = true;
             foreach (var child in children)
-	        {
-		        if (!(child.Type == QuadType.Black && northWestValue.Equals(child.value.Value)))
+            {
+                if (!(child.Type == QuadType.Black && northWestValue.Equals(child.value.Value)))
                 {
                     allBlack = false;
                 }
@@ -431,7 +445,7 @@ namespace Quadtree
                 {
                     break;
                 }
-	        }
+            }
 
             if (allBlack)
             {

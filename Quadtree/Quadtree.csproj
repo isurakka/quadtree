@@ -40,8 +40,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AABB2i.cs" />
-    <Compile Include="DilatedInteger.cs" />
-    <Compile Include="LinearRegionQuadtree.cs" />
     <Compile Include="Point2i.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QuadType.cs" />
