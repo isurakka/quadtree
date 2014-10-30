@@ -6,12 +6,20 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using QDO = Quadtree.QuadDirectionOperation;
 
 namespace Quadtree
 {
     public class RegionQuadtree<T> : IEnumerable<T>
         where T: struct
     {
+        private static readonly Dictionary<QuadDirection, int> enumToQuadrantPos = new Dictionary<QuadDirection, int>
+        {
+            { QuadDirection.West, 0 },
+            { QuadDirection.North, 1 },
+            { QuadDirection.East, 2 },
+            { QuadDirection.South, 3 },
+        };
         private static readonly QuadDirection[] quadrants = QuadDirectionOperation.Quadrants;
 
         private readonly int resolution;
@@ -26,6 +34,26 @@ namespace Quadtree
         public AABB2i AABB
         {
             get { return aabb; }
+        }
+
+        private RegionQuadtree<T> this[QuadDirection d]
+        {
+            get
+            {
+                switch (d)
+                {
+                    case QuadDirection.NorthWest:
+                        return quads[0];
+                    case QuadDirection.NorthEast:
+                        return quads[1];
+                    case QuadDirection.SouthEast:
+                        return quads[2];
+                    case QuadDirection.SouthWest:
+                        return quads[3];
+                    default:
+                        throw new ArgumentException("Not valid quad direction");
+                }
+            }
         }
 
         public QuadType Type
@@ -546,6 +574,42 @@ namespace Quadtree
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public IEnumerable<RegionQuadtree<T>> Traverse()
+        {
+            var p = this;
+            var sides = QDO.Sides;
+            var t = new RegionQuadtree<T>[8];
+            if (Type == QuadType.Grey)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    var d = sides[i];
+
+                    t[(int)d] = soni(this[d], QDO.Quad(QDO.OpSide(d), QDO.CSide(d)));
+                    t[(int)QDO.Quad(d, QDO.CSide(d))] = soni(this[QDO.Quad(d, QDO.CSide(d))], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
+                    t[(int)QDO.CSide(d)] = soni(this[QDO.CSide(d)], QDO.Quad(d, QDO.CCSide(d)));
+                    //t[(int)QDO.Quad(QDO.OpSide(d), QDO.CSide(d))]
+                }
+            }
+            else
+            {
+                yield return this;
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private static RegionQuadtree<T> soni(RegionQuadtree<T> p, QuadDirection q)
+        {
+            if (p.Type == QuadType.Grey)
+            {
+                return p.quads[enumToQuadrantPos[q]];
+            }
+
+            return p;
+
         }
     }
 }
