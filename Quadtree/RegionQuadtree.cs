@@ -580,6 +580,7 @@ namespace Quadtree
         {
             var p = this;
             var sides = QDO.Sides;
+            var a = new RegionQuadtree<T>[8];
             var t = new RegionQuadtree<T>[8];
             if (Type == QuadType.Grey)
             {
@@ -587,7 +588,7 @@ namespace Quadtree
                 {
                     var d = sides[i];
 
-                    t[(int)d] = soni(this[d], QDO.Quad(QDO.OpSide(d), QDO.CSide(d)));
+                    t[(int)d] = soni(a[(int)d], QDO.Quad(QDO.OpSide(d), QDO.CSide(d)));
                     t[(int)QDO.Quad(d, QDO.CSide(d))] = soni(this[QDO.Quad(d, QDO.CSide(d))], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
                     t[(int)QDO.CSide(d)] = soni(this[QDO.CSide(d)], QDO.Quad(d, QDO.CCSide(d)));
                     //t[(int)QDO.Quad(QDO.OpSide(d), QDO.CSide(d))]

@@ -38,26 +38,26 @@ namespace Quadtree
 
         private static readonly QuadDirection[] cside = new QuadDirection[]
         {
-            QuadDirection.NorthWest,
             QuadDirection.North,
-            QuadDirection.NorthEast,
+            QuadDirection.North,
             QuadDirection.East,
-            QuadDirection.SouthEast,
+            QuadDirection.East,
             QuadDirection.South,
-            QuadDirection.SouthWest,
+            QuadDirection.South,
+            QuadDirection.West,
             QuadDirection.West,
         };
 
         private static readonly QuadDirection[] ccside = new QuadDirection[]
         {
-            QuadDirection.SouthWest,
-            QuadDirection.West,
-            QuadDirection.NorthWest,
-            QuadDirection.North,
-            QuadDirection.NorthEast,
-            QuadDirection.East,
-            QuadDirection.SouthEast,
             QuadDirection.South,
+            QuadDirection.South,
+            QuadDirection.West,
+            QuadDirection.West,
+            QuadDirection.North,
+            QuadDirection.North,
+            QuadDirection.East,
+            QuadDirection.East,
         };
 
         public static QuadDirection OpSide(QuadDirection a)
