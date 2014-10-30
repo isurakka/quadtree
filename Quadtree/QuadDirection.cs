@@ -20,6 +20,10 @@ namespace Quadtree
 
     public static class QuadDirectionOperation
     {
+        internal static readonly QuadDirection[] QuadDirections = Enum.GetValues(typeof(QuadDirection)).Cast<QuadDirection>().ToArray();
+        internal static readonly QuadDirection[] Sides = QuadDirections.Where((q) => (int)q % 2 == 0).ToArray();
+        internal static readonly QuadDirection[] Quadrants = QuadDirections.Where((q) => (int)q % 2 != 0).ToArray();
+
         private static readonly QuadDirection[] opside = new QuadDirection[]
         {
             QuadDirection.East,

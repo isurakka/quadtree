@@ -12,17 +12,13 @@ namespace Quadtree
     public class RegionQuadtree<T> : IEnumerable<T>
         where T: struct
     {
+        private static readonly QuadDirection[] quadrants = QuadDirectionOperation.Quadrants;
+
         private readonly int resolution;
         private readonly int depth;
 
         private T? value;
-        private RegionQuadtree<T> northWest; // 2
-        private RegionQuadtree<T> northEast; // 3
-        private RegionQuadtree<T> southEast; // 1
-        private RegionQuadtree<T> southWest; // 0
-
-        // For convince (iterate through children)
-        private List<RegionQuadtree<T>> children;
+        private RegionQuadtree<T>[] quads;
 
         private RegionQuadtree<T> parent;
 
@@ -36,13 +32,13 @@ namespace Quadtree
         {
             get
             {
-                if (value == null && northWest != null)
+                if (value == null && quads != null)
                     return QuadType.Grey;
 
-                if (value != null && northWest == null)
+                if (value != null && quads == null)
                     return QuadType.Black;
 
-                if (value == null && northWest == null)
+                if (value == null && quads == null)
                     return QuadType.White;
 
                 throw new InvalidOperationException("Quadtree state is broken.");
@@ -276,7 +272,7 @@ namespace Quadtree
                 bool anyChild = false;
                 if (canSub)
                 {
-                    foreach (var quad in children)
+                    foreach (var quad in quads)
                     {
                         anyChild |= quad.setAABBInternal(ref aabb, ref value);
                     }
@@ -337,7 +333,7 @@ namespace Quadtree
                 return setInternal(ref value);
             }
 
-            foreach (var quad in children)
+            foreach (var quad in quads)
             {
                 if (quad.setInternal(ref point, ref value))
                 {
@@ -380,7 +376,7 @@ namespace Quadtree
             if (Type == QuadType.Grey)
             {
                 bool any = false;
-                foreach (var quad in children)
+                foreach (var quad in quads)
                 {
                     any |= quad.unsetInternal();
                 }
@@ -429,7 +425,7 @@ namespace Quadtree
                 return true;
             }
 
-            foreach (var quad in children)
+            foreach (var quad in quads)
             {
                 if (quad.Unset(ref point))
                 {
@@ -444,23 +440,19 @@ namespace Quadtree
 
         private void subdivide()
         {
-            northWest = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
+            quads = new RegionQuadtree<T>[4];
+            quads[0] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
                 aabb.LowerBound,
                 aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height / 2)));
-            northEast = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
+            quads[1] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
                 aabb.LowerBound + new Point2i(aabb.Width / 2, 0),
                 aabb.LowerBound + new Point2i(aabb.Width, aabb.Height / 2)));
-            southEast = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
+            quads[2] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
                 aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height / 2),
                 aabb.LowerBound + new Point2i(aabb.Width, aabb.Height)));
-            southWest = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
+            quads[3] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
                 aabb.LowerBound + new Point2i(0, aabb.Height / 2),
                 aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height)));
-
-            children = new List<RegionQuadtree<T>>()
-            {
-                northWest, northEast, southEast, southWest
-            };
 
             if (this.value != null)
             {
@@ -475,11 +467,11 @@ namespace Quadtree
             if (Type != QuadType.Grey)
                 return false;
 
-            var northWestValue = northWest.value;
+            var northWestValue = quads[0].value;
 
             bool allBlack = true;
             bool allWhite = true;
-            foreach (var child in children)
+            foreach (var child in quads)
             {
                 if (!(child.Type == QuadType.Black && northWestValue.Equals(child.value.Value)))
                 {
@@ -499,7 +491,7 @@ namespace Quadtree
 
             if (allBlack)
             {
-                foreach (var quad in children)
+                foreach (var quad in quads)
                 {
                     propagateEvent(EventType.Removing, quad);
                 }
@@ -511,7 +503,7 @@ namespace Quadtree
             else if (!allWhite)
             {
                 bool anySub = false;
-                foreach (var quad in children)
+                foreach (var quad in quads)
                 {
                     anySub |= quad.unsubdivide();
                 }
@@ -524,11 +516,7 @@ namespace Quadtree
                 return false;
             }
 
-            northWest = null;
-            northEast = null;
-            southEast = null;
-            southWest = null;
-            children = null;
+            quads = null;
 
             return true;
         }
@@ -541,26 +529,13 @@ namespace Quadtree
                     yield return value.Value;
                     break;
                 case QuadType.Grey:
-                    foreach (var item in northWest)
+                    foreach (var item in quads)
                     {
-                        yield return item;
+                        foreach (var subItem in item)
+                        {
+                            yield return subItem;
+                        }
                     }
-
-                    foreach (var item in northEast)
-                    {
-                        yield return item;
-                    }
-
-                    foreach (var item in southWest)
-                    {
-                        yield return item;
-                    }
-
-                    foreach (var item in southEast)
-                    {
-                        yield return item;
-                    }
-
                     break;
                 case QuadType.White:
                 default:
