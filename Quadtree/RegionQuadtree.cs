@@ -578,9 +578,13 @@ namespace Quadtree
 
         public IEnumerable<RegionQuadtree<T>> Traverse()
         {
-            var p = this;
-            var sides = QDO.Sides;
             var a = new RegionQuadtree<T>[8];
+            return traverseInternal(a);
+        }
+
+        private IEnumerable<RegionQuadtree<T>> traverseInternal(RegionQuadtree<T>[] a)
+        {
+            var sides = QDO.Sides;
             var t = new RegionQuadtree<T>[8];
             if (Type == QuadType.Grey)
             {
@@ -589,24 +593,31 @@ namespace Quadtree
                     var d = sides[i];
 
                     t[(int)d] = soni(a[(int)d], QDO.Quad(QDO.OpSide(d), QDO.CSide(d)));
-                    t[(int)QDO.Quad(d, QDO.CSide(d))] = soni(this[QDO.Quad(d, QDO.CSide(d))], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
-                    t[(int)QDO.CSide(d)] = soni(this[QDO.CSide(d)], QDO.Quad(d, QDO.CCSide(d)));
-                    //t[(int)QDO.Quad(QDO.OpSide(d), QDO.CSide(d))]
+                    t[(int)QDO.Quad(d, QDO.CSide(d))] = soni(a[(int)QDO.Quad(d, QDO.CSide(d))], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
+                    t[(int)QDO.CSide(d)] = soni(a[(int)QDO.CSide(d)], QDO.Quad(d, QDO.CCSide(d)));
+                    t[(int)QDO.Quad(QDO.OpSide(d), QDO.CSide(d))] = soni(a[(int)QDO.CSide(d)], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
+                    t[(int)QDO.OpSide(d)] = this[QDO.Quad(QDO.OpSide(d), QDO.CSide(d))];
+                    t[(int)QDO.Quad(QDO.OpSide(d), QDO.CCSide(d))] = this[QDO.Quad(QDO.OpSide(d), QDO.CCSide(d))];
+                    t[(int)QDO.CCSide(d)] = this[QDO.Quad(d, QDO.CCSide(d))];
+                    t[(int)QDO.Quad(d, QDO.CCSide(d))] = soni(a[(int)d], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
+
+                    foreach (var item in this[QDO.Quad(d, QDO.CSide(d))].traverseInternal(t))
+                    {
+                        yield return item;
+                    }
                 }
             }
-            else
+            else if (Type == QuadType.Black)
             {
                 yield return this;
             }
-
-            throw new NotImplementedException();
         }
 
         private static RegionQuadtree<T> soni(RegionQuadtree<T> p, QuadDirection q)
         {
-            if (p.Type == QuadType.Grey)
+            if (p != null && p.Type == QuadType.Grey)
             {
-                return p.quads[enumToQuadrantPos[q]];
+                return p[q];
             }
 
             return p;
