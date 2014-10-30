@@ -584,7 +584,11 @@ namespace Quadtree
 
         private IEnumerable<RegionQuadtree<T>> traverseInternal(RegionQuadtree<T>[] a)
         {
-            var sides = QDO.Sides;
+            var sidesOriginal = QDO.Sides;
+            QuadDirection[] sides = new QuadDirection[sidesOriginal.Length];
+            for (int i = 1; i < sidesOriginal.Length; i++)
+                sides[i - 1] = sidesOriginal[i];
+
             var t = new RegionQuadtree<T>[8];
             if (Type == QuadType.Grey)
             {

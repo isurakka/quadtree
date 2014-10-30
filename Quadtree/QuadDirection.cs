@@ -77,32 +77,38 @@ namespace Quadtree
 
         public static QuadDirection Quad(QuadDirection a, QuadDirection b)
         {
-            // Assume user always gives proper values so no validity checks
-
-            int max;
-            int min;
+            QuadDirection max;
+            QuadDirection min;
 
             if (a > b)
             {
-                max = (int)a;
-                min = (int)b;
+                max = a;
+                min = b;
             }
             else
             {
-                max = (int)b;
-                min = (int)a;
+                max = b;
+                min = a;
             }
 
-            if (min == 1)
+            switch (min)
             {
-                return QuadDirection.West;
+                case QuadDirection.West:
+                    if (max == QuadDirection.North)
+                    {
+                        return QuadDirection.NorthWest;
+                    }
+                    else
+                    {
+                        return QuadDirection.SouthWest;
+                    }
+                case QuadDirection.North:
+                    return QuadDirection.NorthEast;
+                case QuadDirection.East:
+                    return QuadDirection.SouthEast;
+                default:
+                    throw new ArgumentException();
             }
-            else if (min == 0)
-            {
-                return QuadDirection.SouthWest;
-            }
-
-            return (QuadDirection)(max - 1);
         }
     }
 }
