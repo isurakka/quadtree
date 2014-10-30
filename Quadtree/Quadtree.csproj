@@ -42,6 +42,7 @@
     <Compile Include="AABB2i.cs" />
     <Compile Include="Point2i.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="QuadDirection.cs" />
     <Compile Include="QuadType.cs" />
     <Compile Include="RegionQuadtree.cs" />
   </ItemGroup>
