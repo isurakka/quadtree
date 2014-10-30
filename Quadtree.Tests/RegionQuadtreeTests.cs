@@ -129,8 +129,6 @@ namespace Quadtree.Tests
             var qt = new RegionQuadtree<int>(1);
             qt.Set(new Point2i(0, 0), 1);
             qt.Set(new Point2i(1, 0), 2);
-            //qt.Set(new Point2i(1, 1), 3);
-            //qt.Set(new Point2i(0, 1), 4);
             var t = qt.Traverse().ToList();
             Assert.Equal(2, t.Count);
 
