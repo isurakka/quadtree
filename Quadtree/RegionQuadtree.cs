@@ -627,11 +627,72 @@ namespace Quadtree
             }
         }
 
-        public void CCL()
+        public List<List<RegionQuadtree<T>>> CCL()
         {
             var linked = new List<DisjointSet<int>>();
             var labels = new Dictionary<RegionQuadtree<T>, int>();
             cclInternal(new RegionQuadtree<T>[8], linked, labels);
+
+            var convert = new Dictionary<int, int>();
+            var regions = new List<List<RegionQuadtree<T>>>();
+            foreach (var pair in labels)
+            {
+                var item = linked[pair.Value].Find().Item;
+
+                if (!convert.ContainsKey(item))
+                {
+                    convert.Add(item, regions.Count);
+                    regions.Add(new List<RegionQuadtree<T>>());
+                }
+
+                regions[convert[item]].Add(pair.Key);
+            }
+
+            for (int i = 0; i < regions.Count; i++)
+            {
+                regions[i].Sort(new Comparison<RegionQuadtree<T>>((v1, v2) => v1.depth.CompareTo(v2.depth)));
+            }
+
+            return regions;
+        }
+
+        public bool RemoveQuadtree(RegionQuadtree<T> other)
+        {
+            return removeQuadtreeInternal(other);
+        }
+
+        private bool removeQuadtreeInternal(RegionQuadtree<T> other)
+        {
+            if (other == this)
+            {
+                var unset = unsetInternal();
+
+                if (unset)
+                {
+                    if (parent != null)
+                    {
+                        parent.unsubdivide();
+                    }
+                    else
+                    {
+                        unsubdivide();
+                    }
+                }
+
+                return true;
+            }
+            else
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    if (this.quads[i].removeQuadtreeInternal(other))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private void cclInternal(RegionQuadtree<T>[] a, List<DisjointSet<int>> linked, Dictionary<RegionQuadtree<T>, int> labels)

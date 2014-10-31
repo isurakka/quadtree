@@ -150,9 +150,35 @@ namespace Quadtree.Tests
             qt.Set(new Point2i(1, 0), 1);
             qt.Set(new Point2i(0, 2), 1);
             qt.Set(new Point2i(1, 2), 1);
-            //qt.Set(new Point2i(2, 2), 1);
-            //qt.Set(new Point2i(4, 2), 1);
-            qt.CCL();
+            var r = qt.CCL();
+            Assert.Equal(2, r.Count);
+            Assert.Equal(2, r[0].Count);
+            Assert.Equal(2, r[1].Count);
+
+            qt = new RegionQuadtree<int>(3);
+            qt.Set(new Point2i(0, 0), 1);
+            qt.Set(new Point2i(1, 0), 1);
+            qt.Set(new Point2i(2, 0), 1);
+            qt.Set(new Point2i(2, 1), 1);
+            qt.Set(new Point2i(2, 2), 1);
+            qt.Set(new Point2i(2, 3), 1);
+            r = qt.CCL();
+            Assert.Equal(1, r.Count);
+            Assert.Equal(6, r[0].Count);
+
+            qt = new RegionQuadtree<int>(3);
+            qt.Set(new Point2i(0, 0), 1);
+            qt.Set(new Point2i(2, 0), 1);
+            qt.Set(new Point2i(4, 0), 1);
+            qt.Set(new Point2i(0, 2), 1);
+            qt.Set(new Point2i(2, 2), 1);
+            qt.Set(new Point2i(4, 2), 1);
+            r = qt.CCL();
+            Assert.Equal(6, r.Count);
+            for (int i = 0; i < 6; i++)
+            {
+                Assert.Equal(1, r[i].Count);
+            }
         }
     }
 }
