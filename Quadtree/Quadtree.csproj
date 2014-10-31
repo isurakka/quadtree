@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AABB2i.cs" />
+    <Compile Include="DisjointSet.cs" />
     <Compile Include="Point2i.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QuadDirection.cs" />
