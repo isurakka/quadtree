@@ -86,5 +86,10 @@ namespace Quadtree
         {
             return LowerBound.GetHashCode() ^ UpperBound.GetHashCode();
         }
+
+        public override string ToString()
+        {
+            return "{" + LowerBound + ", " + UpperBound + "}";
+        }
     }
 }

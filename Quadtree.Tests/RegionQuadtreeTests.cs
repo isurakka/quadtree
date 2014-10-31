@@ -126,7 +126,7 @@ namespace Quadtree.Tests
         [Fact()]
         public void TraverseTest()
         {
-            var qt = new RegionQuadtree<int>(1);
+            var qt = new RegionQuadtree<int>(2);
             qt.Set(new Point2i(0, 0), 1);
             qt.Set(new Point2i(1, 0), 2);
             var t = qt.Traverse().ToList();
@@ -140,6 +140,19 @@ namespace Quadtree.Tests
             qt.Set(new Point2i(3, 6), 2);
             t = qt.Traverse().ToList();
             Assert.Equal(5, t.Count);
+        }
+
+        [Fact()]
+        public void CCLTest()
+        {
+            var qt = new RegionQuadtree<int>(3);
+            qt.Set(new Point2i(0, 0), 1);
+            qt.Set(new Point2i(1, 0), 1);
+            qt.Set(new Point2i(0, 2), 1);
+            qt.Set(new Point2i(1, 2), 1);
+            //qt.Set(new Point2i(2, 2), 1);
+            //qt.Set(new Point2i(4, 2), 1);
+            qt.CCL();
         }
     }
 }

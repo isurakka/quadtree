@@ -610,7 +610,93 @@ namespace Quadtree
             }
             else if (Type == QuadType.Black)
             {
+                Debugger.Log(0, "1", aabb.ToString() + Environment.NewLine);
+                //Trace.WriteLine(aabb);
+                for (int i = 0; i < 8; i++)
+                {
+                    if (a[i] != null && a[i].Type == QuadType.White)
+                    {
+                        a[i] = null;
+                    }
+
+                    Debugger.Log(0, "1", (QuadDirection)i + " " + (a[i] != null ? a[i].aabb.ToString() : "null") + Environment.NewLine);
+                    //Trace.WriteLine((QuadDirection)i + " " + (a[i] != null ? a[i].aabb.ToString() : "null"));
+                }
+
                 yield return this;
+            }
+        }
+
+        public void CCL()
+        {
+            var linked = new List<DisjointSet<int>>();
+            var labels = new Dictionary<RegionQuadtree<T>, int>();
+            cclInternal(new RegionQuadtree<T>[8], linked, labels);
+        }
+
+        private void cclInternal(RegionQuadtree<T>[] a, List<DisjointSet<int>> linked, Dictionary<RegionQuadtree<T>, int> labels)
+        {
+            //var sides = new QuadDirection[] { QuadDirection.West, QuadDirection.North };
+            var sides = QDO.Sides;
+
+            var t = new RegionQuadtree<T>[8];
+            if (Type == QuadType.Grey)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    var d = sides[i];
+
+                    t[(int)d] = soni(a[(int)d], QDO.Quad(QDO.OpSide(d), QDO.CSide(d)));
+                    t[(int)QDO.Quad(d, QDO.CSide(d))] = soni(a[(int)QDO.Quad(d, QDO.CSide(d))], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
+                    t[(int)QDO.CSide(d)] = soni(a[(int)QDO.CSide(d)], QDO.Quad(d, QDO.CCSide(d)));
+                    t[(int)QDO.Quad(QDO.OpSide(d), QDO.CSide(d))] = soni(a[(int)QDO.CSide(d)], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
+                    t[(int)QDO.OpSide(d)] = this[QDO.Quad(QDO.OpSide(d), QDO.CSide(d))];
+                    t[(int)QDO.Quad(QDO.OpSide(d), QDO.CCSide(d))] = this[QDO.Quad(QDO.OpSide(d), QDO.CCSide(d))];
+                    t[(int)QDO.CCSide(d)] = this[QDO.Quad(d, QDO.CCSide(d))];
+                    t[(int)QDO.Quad(d, QDO.CCSide(d))] = soni(a[(int)d], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
+
+                    this[QDO.Quad(d, QDO.CSide(d))].cclInternal(t, linked, labels);
+                }
+            }
+            else if (Type == QuadType.Black)
+            {
+                bool noNeighbors = true;
+                var neighborLabels = new List<int>();
+                for (int i = 0; i < 8; i++)
+                {
+                    if (a[i] != null && a[i].Type == QuadType.White)
+                    {
+                        a[i] = null;
+                    }
+
+                    if (a[i] != null)
+                    {
+                        if (a[i].Type == QuadType.Black && labels.ContainsKey(a[i]))
+                        {
+                            neighborLabels.Add(labels[a[i]]);
+                            noNeighbors = false;
+                        }
+                        
+                    }
+                }
+
+                if (noNeighbors)
+                {
+                    var nextLabel = linked.Count;
+                    linked.Add(new DisjointSet<int>(nextLabel));
+                    labels[this] = nextLabel;
+                }
+                else
+                {
+                    labels[this] = neighborLabels.Min();
+                    for (int i = 0; i < neighborLabels.Count; i++)
+                    {
+                        for (int j = 0; j < neighborLabels.Count; j++)
+                        {
+                            linked[neighborLabels[i]].Union(linked[neighborLabels[j]]);
+                        }
+                    }
+                }
             }
         }
 
