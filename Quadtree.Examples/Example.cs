@@ -31,6 +31,7 @@ namespace Quadtree.Examples
         Text selectionText;
         Text radiusText;
         Text helpText;
+        List<List<RegionQuadtree<Color>>> lastRegions;
 
         VertexArray quadVertexArray = new VertexArray(PrimitiveType.Quads);
         VertexArray outlineVertexArray = new VertexArray(PrimitiveType.Lines);
@@ -48,6 +49,9 @@ namespace Quadtree.Examples
 
             initQuadtree();
             initInput();
+
+            lastRegions = quadtree.CCL();
+            lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
         }
 
         public void Run()
@@ -81,6 +85,19 @@ namespace Quadtree.Examples
                     {
                         quadtree.Unset(qtPos);
                     }
+
+                    lastRegions = quadtree.CCL();
+                    lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
+
+                    StringBuilder sb = new StringBuilder();
+                    sb.Append("{ ");
+                    for (int i = 0; i < lastRegions.Count; i++)
+                    {
+                        sb.Append(lastRegions[i].Count);
+                        sb.Append(", ");
+                    }
+                    sb.Append(" }");
+                    Debug.WriteLine(sb.ToString());
                 }
                 
                 rw.Clear();
@@ -95,6 +112,29 @@ namespace Quadtree.Examples
 
                 rw.Draw(quadVertexArray);
                 rw.Draw(outlineVertexArray);
+
+                for (int i = 0; i < lastRegions.Count; i++)
+                {
+                    var combined = lastRegions[i][0].AABB;
+                    for (int j = 0; j < lastRegions[i].Count; j++)
+                    {
+                        if (j == 0)
+                        {
+                            continue;
+                        }
+
+                        var otherAABB = lastRegions[i][j].AABB;
+                        combined.Combine(ref otherAABB);
+                    }
+
+                    var center = new Vector2f(
+                        combined.LowerBound.X + combined.Width / 2f, 
+                        combined.LowerBound.Y + combined.Height / 2f) * qtMultiplier;
+                    var text = new Text((i + 1).ToString(), fontBold, 14u);
+                    text.Position = center - new Vector2f(text.GetGlobalBounds().Width / 2f, text.GetGlobalBounds().Height / 2f);
+                    text.Color = Color.Black;
+                    rw.Draw(text);
+                }
 
                 rw.Display();
             }
@@ -112,7 +152,7 @@ namespace Quadtree.Examples
 
             rects = new Dictionary<AABB2i, QuadData>();
 
-            quadtree.OnQuadAdded += (s, a) =>
+            Action<object, RegionQuadtree<Color>.QuadEventArgs<Color>> onQuadAdded = (s, a) =>
             {
                 var aabb = a.AABB;
                 var pos = new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y) * qtMultiplier;
@@ -169,7 +209,7 @@ namespace Quadtree.Examples
                     outlineVertexArray.Resize(outlineVertexArray.VertexCount + 8);
                 }
 
-                outlineVertexArray[quadData.outlineIndex] =     new Vertex(outlinePoints[0] + new Vector2f(-outlineIntend, 0f), outlineColor);
+                outlineVertexArray[quadData.outlineIndex] = new Vertex(outlinePoints[0] + new Vector2f(-outlineIntend, 0f), outlineColor);
                 outlineVertexArray[quadData.outlineIndex + 1] = new Vertex(outlinePoints[1] + new Vector2f(-outlineIntend, 0f), outlineColor);
                 outlineVertexArray[quadData.outlineIndex + 2] = new Vertex(outlinePoints[1] + new Vector2f(0f, -outlineIntend), outlineColor);
                 outlineVertexArray[quadData.outlineIndex + 3] = new Vertex(outlinePoints[2] + new Vector2f(0f, -outlineIntend), outlineColor);
@@ -180,8 +220,9 @@ namespace Quadtree.Examples
 
                 rects.Add(aabb, quadData);
             };
+            quadtree.OnQuadAdded += new EventHandler<RegionQuadtree<Color>.QuadEventArgs<Color>>(onQuadAdded);
 
-            quadtree.OnQuadRemoving += (s, a) =>
+            Action<object, RegionQuadtree<Color>.QuadEventArgs<Color>> onQuadRemoving = (s, a) =>
             {
                 var quadData = rects[a.AABB];
                 
@@ -201,8 +242,9 @@ namespace Quadtree.Examples
 
                 rects.Remove(a.AABB);
             };
+            quadtree.OnQuadRemoving += new EventHandler<RegionQuadtree<Color>.QuadEventArgs<Color>>(onQuadRemoving);
 
-            quadtree.OnQuadChanged += (s, a) =>
+            Action<object, RegionQuadtree<Color>.QuadChangedEventArgs<Color>> onQuadChanged = (s, a) =>
             {
                 var quadData = rects[a.AABB];
                 var quadColor = a.Value;
@@ -218,6 +260,7 @@ namespace Quadtree.Examples
                     outlineVertexArray[quadData.outlineIndex + i] = new Vertex(outlineVertexArray[quadData.outlineIndex + i].Position, outlineColor);
                 }
             };
+            quadtree.OnQuadChanged += new EventHandler<RegionQuadtree<Color>.QuadChangedEventArgs<Color>>(onQuadChanged);
 
             quadtree.Set(Color.White);
         }
@@ -267,6 +310,8 @@ namespace Quadtree.Examples
                     case Keyboard.Key.R:
                     {
                         quadtree.Set(Color.White);
+                        lastRegions = quadtree.CCL();
+                        lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
                         break;
                     }
                 }

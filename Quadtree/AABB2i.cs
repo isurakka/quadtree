@@ -57,6 +57,12 @@ namespace Quadtree
             return result;
         }
 
+        public void Combine(ref AABB2i aabb)
+        {
+            LowerBound = new Point2i(Math.Min(LowerBound.X, aabb.LowerBound.X), Math.Min(LowerBound.Y, aabb.LowerBound.Y));
+            UpperBound = new Point2i(Math.Max(UpperBound.X, aabb.UpperBound.X), Math.Max(UpperBound.Y, aabb.UpperBound.Y));
+        }
+
         public static bool operator ==(AABB2i v1, AABB2i v2)
         {
             return v1.Equals(v2);
