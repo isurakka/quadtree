@@ -627,34 +627,7 @@ namespace Quadtree
             }
         }
 
-        public List<List<RegionQuadtree<T>>> CCL()
-        {
-            var linked = new List<DisjointSet<int>>();
-            var labels = new Dictionary<RegionQuadtree<T>, int>();
-            cclInternal(new RegionQuadtree<T>[8], linked, labels);
-
-            var convert = new Dictionary<int, int>();
-            var regions = new List<List<RegionQuadtree<T>>>();
-            foreach (var pair in labels)
-            {
-                var item = linked[pair.Value].Find().Item;
-
-                if (!convert.ContainsKey(item))
-                {
-                    convert.Add(item, regions.Count);
-                    regions.Add(new List<RegionQuadtree<T>>());
-                }
-
-                regions[convert[item]].Add(pair.Key);
-            }
-
-            for (int i = 0; i < regions.Count; i++)
-            {
-                regions[i].Sort(new Comparison<RegionQuadtree<T>>((v1, v2) => v1.depth.CompareTo(v2.depth)));
-            }
-
-            return regions;
-        }
+        
 
         public bool RemoveQuadtree(RegionQuadtree<T> other)
         {
@@ -695,6 +668,35 @@ namespace Quadtree
             return false;
         }
 
+        public List<List<RegionQuadtree<T>>> CCL()
+        {
+            var linked = new List<DisjointSet<int>>();
+            var labels = new Dictionary<RegionQuadtree<T>, int>();
+            cclInternal(new RegionQuadtree<T>[8], linked, labels);
+
+            var convert = new Dictionary<int, int>();
+            var regions = new List<List<RegionQuadtree<T>>>();
+            foreach (var pair in labels)
+            {
+                var item = linked[pair.Value].Find().Item;
+
+                if (!convert.ContainsKey(item))
+                {
+                    convert.Add(item, regions.Count);
+                    regions.Add(new List<RegionQuadtree<T>>());
+                }
+
+                regions[convert[item]].Add(pair.Key);
+            }
+
+            for (int i = 0; i < regions.Count; i++)
+            {
+                regions[i].Sort(new Comparison<RegionQuadtree<T>>((v1, v2) => v1.depth.CompareTo(v2.depth)));
+            }
+
+            return regions;
+        }
+
         private void cclInternal(RegionQuadtree<T>[] a, List<DisjointSet<int>> linked, Dictionary<RegionQuadtree<T>, int> labels)
         {
             //var sides = new QuadDirection[] { QuadDirection.West, QuadDirection.North };
@@ -721,6 +723,35 @@ namespace Quadtree
             }
             else if (Type == QuadType.Black)
             {
+                /*
+                var s = a[(int)QuadDirection.South];
+                var e = a[(int)QuadDirection.East];
+
+                var sNotWhite = s != null && s.Type != QuadType.White;
+                var eNotWhite = e != null && e.Type != QuadType.White;
+                var noNeighbors = !sNotWhite && !eNotWhite;
+                var sBlack = s != null && s.Type == QuadType.Black;
+                var eBlack = e != null && e.Type == QuadType.Black;
+                var sGrey = s != null && s.Type == QuadType.Grey;
+                var eGrey = e != null && e.Type == QuadType.Grey;
+
+                if (noNeighbors)
+                {
+                    var nextLabel = linked.Count;
+                    linked.Add(new DisjointSet<int>(nextLabel));
+                    labels[this] = nextLabel;
+                }
+                else
+                {
+                    if (sBlack)
+                    {
+                        var sLabel = labels[s];
+                        labels[this] = sLabel;
+                    }
+                }
+                */
+
+                
                 bool noNeighbors = true;
                 var neighborLabels = new List<int>();
                 for (int i = 0; i < 8; i++)
@@ -758,6 +789,7 @@ namespace Quadtree
                         }
                     }
                 }
+                
             }
         }
 
