@@ -672,7 +672,8 @@ namespace Quadtree
         {
             var linked = new List<DisjointSet<int>>();
             var labels = new Dictionary<RegionQuadtree<T>, int>();
-            cclInternal(new RegionQuadtree<T>[8], linked, labels);
+            cclInternal(new RegionQuadtree<T>[8], linked, labels, QDO.Sides);
+            cclInternal(new RegionQuadtree<T>[8], linked, labels, QDO.Sides.Reverse().ToArray());
 
             var convert = new Dictionary<int, int>();
             var regions = new List<List<RegionQuadtree<T>>>();
@@ -697,10 +698,10 @@ namespace Quadtree
             return regions;
         }
 
-        private void cclInternal(RegionQuadtree<T>[] a, List<DisjointSet<int>> linked, Dictionary<RegionQuadtree<T>, int> labels)
+        private void cclInternal(RegionQuadtree<T>[] a, List<DisjointSet<int>> linked, Dictionary<RegionQuadtree<T>, int> labels, QuadDirection[] sides)
         {
             //var sides = new QuadDirection[] { QuadDirection.West, QuadDirection.North };
-            var sides = QDO.Sides;
+            //var sides = QDO.Sides;
 
             var t = new RegionQuadtree<T>[8];
             if (Type == QuadType.Grey)
@@ -718,7 +719,7 @@ namespace Quadtree
                     t[(int)QDO.CCSide(d)] = this[QDO.Quad(d, QDO.CCSide(d))];
                     t[(int)QDO.Quad(d, QDO.CCSide(d))] = soni(a[(int)d], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
 
-                    this[QDO.Quad(d, QDO.CSide(d))].cclInternal(t, linked, labels);
+                    this[QDO.Quad(d, QDO.CSide(d))].cclInternal(t, linked, labels, sides);
                 }
             }
             else if (Type == QuadType.Black)
@@ -768,7 +769,18 @@ namespace Quadtree
                             neighborLabels.Add(labels[a[i]]);
                             noNeighbors = false;
                         }
-                        
+                        else if (a[i].Type == QuadType.Grey)
+                        {
+                            var share = getAllWhoShareEdge((QuadDirection)i, QuadType.Black);
+                            foreach (var shareBlack in share)
+                            {
+                                if (labels.ContainsKey(shareBlack))
+                                {
+                                    neighborLabels.Add(labels[shareBlack]);
+                                    noNeighbors = false;
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -790,6 +802,45 @@ namespace Quadtree
                     }
                 }
                 
+            }
+        }
+
+        private List<RegionQuadtree<T>> getAllWhoShareEdge(QuadDirection direction, QuadType type)
+        {
+            QuadDirection[] dir;
+            var op = QDO.OpSide(direction);
+            if ((int)direction % 2 == 0)
+            {
+                dir = new QuadDirection[] { QDO.Quad(op, QDO.CSide(op)), QDO.Quad(op, QDO.CCSide(op)) };
+            }
+            else
+            {
+                dir = new QuadDirection[] { QDO.OpSide(op) };
+            }
+
+            if (type == QuadType.Grey)
+            {
+                throw new ArgumentException("Grey isn't allowed!");
+            }
+
+            var share = new List<RegionQuadtree<T>>();
+            getAllWhoShareEdgeInternal(type, this, share, dir);
+
+            return share;
+        }
+
+        private void getAllWhoShareEdgeInternal(QuadType type, RegionQuadtree<T> original, List<RegionQuadtree<T>> share, QuadDirection[] dir)
+        {
+            if (this.Type == type && this.aabb.Intersects(ref original.aabb))
+            {
+                share.Add(this);
+            }
+            else if (this.Type == QuadType.Grey)
+            {
+                for (int i = 0; i < dir.Length; i++)
+                {
+                    this[dir[i]].getAllWhoShareEdgeInternal(type, original, share, dir);
+                }
             }
         }
 

@@ -18,6 +18,11 @@ namespace Quadtree.Tests
             Assert.Equal(QuadDirection.North, QDO.OpSide(QuadDirection.South));
             Assert.Equal(QuadDirection.East, QDO.OpSide(QuadDirection.West));
             Assert.Equal(QuadDirection.South, QDO.OpSide(QuadDirection.North));
+
+            Assert.Equal(QuadDirection.SouthEast, QDO.OpSide(QuadDirection.NorthWest));
+            Assert.Equal(QuadDirection.SouthWest, QDO.OpSide(QuadDirection.NorthEast));
+            Assert.Equal(QuadDirection.NorthWest, QDO.OpSide(QuadDirection.SouthEast));
+            Assert.Equal(QuadDirection.NorthEast, QDO.OpSide(QuadDirection.SouthWest));
         }
 
         [Fact()]

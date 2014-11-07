@@ -182,13 +182,26 @@ namespace Quadtree.Tests
         }
 
         [Fact()]
-        public void CCLSmallerNeighbor()
+        public void CCLSmallerNeighborTopLeft()
         {
-            var qt = new RegionQuadtree<int>(2);
+            var qt = new RegionQuadtree<int>(3);
             qt.Set(1);
             qt.Set(new Point2i(0, 0), 2);
             //qt.Set(new Point2i(3, 0), 2);
             //qt.Set(new Point2i(3, 3), 2);
+            //qt.Set(new Point2i(1, 2), 1);
+            var r = qt.CCL();
+            Assert.Equal(1, r.Count);
+        }
+
+        [Fact()]
+        public void CCLSmallerNeighborBotLeft()
+        {
+            var qt = new RegionQuadtree<int>(3);
+            qt.Set(1);
+            qt.Set(new Point2i(0, 0), 2);
+            qt.Set(new Point2i(5, 0), 2);
+            qt.Set(new Point2i(5, 5), 2);
             //qt.Set(new Point2i(1, 2), 1);
             var r = qt.CCL();
             Assert.Equal(1, r.Count);
