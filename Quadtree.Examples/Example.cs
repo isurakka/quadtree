@@ -115,21 +115,18 @@ namespace Quadtree.Examples
 
                 for (int i = 0; i < lastRegions.Count; i++)
                 {
-                    var combined = lastRegions[i][0].AABB;
+                    var maxAABB = new AABB2i(new Point2i(), new Point2i());
                     for (int j = 0; j < lastRegions[i].Count; j++)
                     {
-                        if (j == 0)
+                        if (lastRegions[i][j].AABB.Width * lastRegions[i][j].AABB.Height > maxAABB.Width * maxAABB.Height)
                         {
-                            continue;
+                            maxAABB = lastRegions[i][j].AABB;
                         }
-
-                        var otherAABB = lastRegions[i][j].AABB;
-                        combined.Combine(ref otherAABB);
                     }
 
                     var center = new Vector2f(
-                        combined.LowerBound.X + combined.Width / 2f, 
-                        combined.LowerBound.Y + combined.Height / 2f) * qtMultiplier;
+                        maxAABB.LowerBound.X + maxAABB.Width / 2f,
+                        maxAABB.LowerBound.Y + maxAABB.Height / 2f) * qtMultiplier;
                     var text = new Text((i + 1).ToString(), fontBold, 20u);
                     text.Position = center - new Vector2f(text.GetGlobalBounds().Width / 2f, text.GetGlobalBounds().Height / 2f);
                     text.Color = Color.Black;
