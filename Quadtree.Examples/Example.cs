@@ -21,8 +21,8 @@ namespace Quadtree.Examples
 
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
-        const int qtResolution = 5;
-        const float qtMultiplier = 16f;
+        const int qtResolution = 7;
+        const float qtMultiplier = 4f;
         Dictionary<AABB2i, QuadData> rects;
 
         int selectionRadius = 40;
@@ -127,7 +127,7 @@ namespace Quadtree.Examples
                     var center = new Vector2f(
                         maxAABB.LowerBound.X + maxAABB.Width / 2f,
                         maxAABB.LowerBound.Y + maxAABB.Height / 2f) * qtMultiplier;
-                    var text = new Text((i + 1).ToString(), fontBold, 20u);
+                    var text = new Text((i + 1).ToString(), fontBold, 12u);
                     text.Position = center - new Vector2f(text.GetGlobalBounds().Width / 2f, text.GetGlobalBounds().Height / 2f);
                     text.Color = Color.Black;
                     rw.Draw(text);

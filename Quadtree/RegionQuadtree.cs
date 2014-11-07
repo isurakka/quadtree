@@ -13,15 +13,6 @@ namespace Quadtree
     public class RegionQuadtree<T> : IEnumerable<T>
         where T: struct
     {
-        private static readonly Dictionary<QuadDirection, int> enumToQuadrantPos = new Dictionary<QuadDirection, int>
-        {
-            { QuadDirection.West, 0 },
-            { QuadDirection.North, 1 },
-            { QuadDirection.East, 2 },
-            { QuadDirection.South, 3 },
-        };
-        private static readonly QuadDirection[] quadrants = QuadDirectionOperation.Quadrants;
-
         private readonly int resolution;
         private readonly int depth;
 
