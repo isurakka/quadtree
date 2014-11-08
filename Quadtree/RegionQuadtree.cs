@@ -274,11 +274,7 @@ namespace Quadtree
 
         private bool setAABBInternal(ref AABB2i aabb, ref T value)
         {
-            //bool contains = this.aabb.Contains(ref aabb);
             bool otherContains = aabb.Contains(ref this.aabb);
-            //bool overlaps = this.aabb.Overlap(ref aabb);
-            //bool otherOverlaps = aabb.Overlap(ref this.aabb);
-            //bool intersects = this.aabb.Intersects(ref aabb);
             bool otherIntersects = aabb.Intersects(ref this.aabb);
 
             if (!otherContains && otherIntersects)
