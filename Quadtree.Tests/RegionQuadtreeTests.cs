@@ -143,14 +143,14 @@ namespace Quadtree.Tests
         }
 
         [Fact()]
-        public void CCLTest()
+        public void FindConnectedComponentsTest()
         {
             var qt = new RegionQuadtree<int>(3);
             qt.Set(new Point2i(0, 0), 1);
             qt.Set(new Point2i(1, 0), 1);
             qt.Set(new Point2i(0, 2), 1);
             qt.Set(new Point2i(1, 2), 1);
-            var r = qt.CCL();
+            var r = qt.FindConnectedComponents();
             Assert.Equal(2, r.Count);
             Assert.Equal(2, r[0].Count);
             Assert.Equal(2, r[1].Count);
@@ -162,7 +162,7 @@ namespace Quadtree.Tests
             qt.Set(new Point2i(2, 1), 1);
             qt.Set(new Point2i(2, 2), 1);
             qt.Set(new Point2i(2, 3), 1);
-            r = qt.CCL();
+            r = qt.FindConnectedComponents();
             Assert.Equal(1, r.Count);
             Assert.Equal(6, r[0].Count);
 
@@ -173,7 +173,7 @@ namespace Quadtree.Tests
             qt.Set(new Point2i(0, 2), 1);
             qt.Set(new Point2i(2, 2), 1);
             qt.Set(new Point2i(4, 2), 1);
-            r = qt.CCL();
+            r = qt.FindConnectedComponents();
             Assert.Equal(6, r.Count);
             for (int i = 0; i < 6; i++)
             {
@@ -182,7 +182,7 @@ namespace Quadtree.Tests
         }
 
         [Fact()]
-        public void CCLSmallerNeighborTopLeft()
+        public void FindConnectedComponentsSmallerNeighborTopLeft()
         {
             var qt = new RegionQuadtree<int>(3);
             qt.Set(1);
@@ -190,12 +190,12 @@ namespace Quadtree.Tests
             //qt.Set(new Point2i(3, 0), 2);
             //qt.Set(new Point2i(3, 3), 2);
             //qt.Set(new Point2i(1, 2), 1);
-            var r = qt.CCL();
+            var r = qt.FindConnectedComponents();
             Assert.Equal(1, r.Count);
         }
 
         [Fact()]
-        public void CCLSmallerNeighborBotLeft()
+        public void FindConnectedComponentsSmallerNeighborBotLeft()
         {
             var qt = new RegionQuadtree<int>(3);
             qt.Set(1);
@@ -203,7 +203,7 @@ namespace Quadtree.Tests
             qt.Set(new Point2i(5, 0), 2);
             qt.Set(new Point2i(5, 5), 2);
             //qt.Set(new Point2i(1, 2), 1);
-            var r = qt.CCL();
+            var r = qt.FindConnectedComponents();
             Assert.Equal(1, r.Count);
         }
     }

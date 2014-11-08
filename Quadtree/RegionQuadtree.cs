@@ -697,17 +697,12 @@ namespace Quadtree
             }
             else if (Type == QuadType.Black)
             {
-                Debugger.Log(0, "1", aabb.ToString() + Environment.NewLine);
-                //Trace.WriteLine(aabb);
                 for (int i = 0; i < 8; i++)
                 {
                     if (a[i] != null && a[i].Type == QuadType.White)
                     {
                         a[i] = null;
                     }
-
-                    Debugger.Log(0, "1", (QuadDirection)i + " " + (a[i] != null ? a[i].aabb.ToString() : "null") + Environment.NewLine);
-                    //Trace.WriteLine((QuadDirection)i + " " + (a[i] != null ? a[i].aabb.ToString() : "null"));
                 }
 
                 yield return this;
@@ -753,7 +748,7 @@ namespace Quadtree
             return false;
         }
 
-        public List<List<RegionQuadtree<T>>> CCL()
+        public List<List<RegionQuadtree<T>>> FindConnectedComponents()
         {
             var linked = new List<DisjointSet<int>>();
             var labels = new Dictionary<RegionQuadtree<T>, int>();
@@ -785,9 +780,6 @@ namespace Quadtree
 
         private void cclInternal(RegionQuadtree<T>[] a, List<DisjointSet<int>> linked, Dictionary<RegionQuadtree<T>, int> labels, QuadDirection[] sides)
         {
-            //var sides = new QuadDirection[] { QuadDirection.West, QuadDirection.North };
-            //var sides = QDO.Sides;
-
             var t = new RegionQuadtree<T>[8];
             if (Type == QuadType.Grey)
             {
@@ -809,35 +801,6 @@ namespace Quadtree
             }
             else if (Type == QuadType.Black)
             {
-                /*
-                var s = a[(int)QuadDirection.South];
-                var e = a[(int)QuadDirection.East];
-
-                var sNotWhite = s != null && s.Type != QuadType.White;
-                var eNotWhite = e != null && e.Type != QuadType.White;
-                var noNeighbors = !sNotWhite && !eNotWhite;
-                var sBlack = s != null && s.Type == QuadType.Black;
-                var eBlack = e != null && e.Type == QuadType.Black;
-                var sGrey = s != null && s.Type == QuadType.Grey;
-                var eGrey = e != null && e.Type == QuadType.Grey;
-
-                if (noNeighbors)
-                {
-                    var nextLabel = linked.Count;
-                    linked.Add(new DisjointSet<int>(nextLabel));
-                    labels[this] = nextLabel;
-                }
-                else
-                {
-                    if (sBlack)
-                    {
-                        var sLabel = labels[s];
-                        labels[this] = sLabel;
-                    }
-                }
-                */
-
-                
                 bool noNeighbors = true;
                 var neighborLabels = new List<int>();
                 for (int i = 0; i < 8; i++)

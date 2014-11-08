@@ -50,7 +50,7 @@ namespace Quadtree.Examples
             initQuadtree();
             initInput();
 
-            lastRegions = quadtree.CCL();
+            lastRegions = quadtree.FindConnectedComponents();
             lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
         }
 
@@ -91,7 +91,7 @@ namespace Quadtree.Examples
 
                     if (anyChanged)
                     {
-                        lastRegions = quadtree.CCL();
+                        lastRegions = quadtree.FindConnectedComponents();
                         lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
 
                         StringBuilder sb = new StringBuilder();
@@ -313,7 +313,7 @@ namespace Quadtree.Examples
                     case Keyboard.Key.R:
                     {
                         quadtree.Set(Color.White);
-                        lastRegions = quadtree.CCL();
+                        lastRegions = quadtree.FindConnectedComponents();
                         lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
                         break;
                     }
