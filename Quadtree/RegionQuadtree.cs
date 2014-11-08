@@ -300,10 +300,6 @@ namespace Quadtree
                         anyChild |= quad.setAABBInternal(ref aabb, ref value);
                     }
                 }
-                else
-                {
-                    return false;
-                }
 
                 return anyChild || subdivided;
             }
@@ -717,8 +713,6 @@ namespace Quadtree
                 yield return this;
             }
         }
-
-        
 
         public bool RemoveQuadtree(RegionQuadtree<T> other)
         {
