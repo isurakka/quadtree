@@ -158,9 +158,6 @@ namespace Quadtree.Examples
             Action<object, RegionQuadtree<Color>.QuadEventArgs<Color>> onQuadAdded = (s, a) =>
             {
                 var aabb = a.AABB;
-                var pos = new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y) * qtMultiplier;
-                var size = new Vector2f(aabb.Width, aabb.Height) * qtMultiplier;
-                var rect = new RectangleShape(size);
                 var quadColor = a.Value;
                 var outlineColor = new Color(0, 0, 0, 100);
 
@@ -199,6 +196,7 @@ namespace Quadtree.Examples
                 {
                     quadVertexArray[quadData.quadIndex + i] = new Vertex(rectPoints[(int)i], quadColor);
                 }
+
 
                 // outline
                 if (freeOutlineIndexes.Count > 0)
