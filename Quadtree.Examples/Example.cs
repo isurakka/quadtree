@@ -75,29 +75,35 @@ namespace Quadtree.Examples
                     var aabbMax = (worldMouse + new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
                     var qtAABB = new AABB2i(new Point2i((int)aabbMin.X, (int)aabbMin.Y), new Point2i((int)aabbMax.X, (int)aabbMax.Y));
                     var qtPos = new Point2i((int)sfmlPos.X, (int)sfmlPos.Y);
+
+                    bool anyChanged = false;
                     if (Mouse.IsButtonPressed(Mouse.Button.Left))
                     {
                         //quadtree.Set(qtPos, selections[selection].Item2);
-                        quadtree.SetCircle(qtPos, (int)(selectionRadius / qtMultiplier), selections[selection].Item2);
+                        anyChanged |= quadtree.SetCircle(qtPos, (int)(selectionRadius / qtMultiplier), selections[selection].Item2);
                         //quadtree.SetAABB(qtAABB, selections[selection].Item2);
                     }
                     else if (Mouse.IsButtonPressed(Mouse.Button.Right))
                     {
-                        quadtree.Unset(qtPos);
+                        //quadtree.Unset(qtPos);
+                        anyChanged |= quadtree.UnsetCircle(qtPos, (int)(selectionRadius / qtMultiplier));
                     }
 
-                    lastRegions = quadtree.CCL();
-                    lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
-
-                    StringBuilder sb = new StringBuilder();
-                    sb.Append("{ ");
-                    for (int i = 0; i < lastRegions.Count; i++)
+                    if (anyChanged)
                     {
-                        sb.Append(lastRegions[i].Count);
-                        sb.Append(", ");
+                        lastRegions = quadtree.CCL();
+                        lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
+
+                        StringBuilder sb = new StringBuilder();
+                        sb.Append("{ ");
+                        for (int i = 0; i < lastRegions.Count; i++)
+                        {
+                            sb.Append(lastRegions[i].Count);
+                            sb.Append(", ");
+                        }
+                        sb.Append(" }");
+                        Debug.WriteLine(sb.ToString());
                     }
-                    sb.Append(" }");
-                    Debug.WriteLine(sb.ToString());
                 }
                 
                 rw.Clear();

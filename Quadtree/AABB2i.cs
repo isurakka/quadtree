@@ -57,6 +57,16 @@ namespace Quadtree
             return result;
         }
 
+        /*
+        public bool Overlap(ref AABB2i aabb)
+        {
+            bool lowerOverlap = LowerBound.X <= aabb.LowerBound.X && LowerBound.Y <= aabb.LowerBound.Y;
+            bool upperOverlap = aabb.UpperBound.X <= UpperBound.X && aabb.UpperBound.Y <= UpperBound.Y;
+
+            return (lowerOverlap || upperOverlap) && !(lowerOverlap && upperOverlap);
+        }
+        */
+
         public void Combine(ref AABB2i aabb)
         {
             LowerBound = new Point2i(Math.Min(LowerBound.X, aabb.LowerBound.X), Math.Min(LowerBound.Y, aabb.LowerBound.Y));

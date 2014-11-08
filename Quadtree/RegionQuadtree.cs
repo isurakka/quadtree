@@ -187,12 +187,12 @@ namespace Quadtree
 
         public bool Set(ref T value)
         {
-            var ret = setInternal(ref value);
-            if (ret)
+            var anySet = setInternal(ref value);
+            if (anySet)
             {
                 unsubdivide();
             }
-            return ret;
+            return anySet;
         }
 
         private bool setInternal(ref T value)
@@ -249,10 +249,10 @@ namespace Quadtree
             var anyAABBSet = setAABBInternal(ref testAABB, ref value);
             if (anyOuterSet || anyAABBSet)
             {
-                return unsubdivide();
+                unsubdivide();
             }
 
-            return false;
+            return anyOuterSet || anyAABBSet;
         }
 
         public bool SetAABB(AABB2i aabb, T value)
@@ -266,19 +266,28 @@ namespace Quadtree
 
             if (setAny)
             {
-                return unsubdivide();
+                unsubdivide();
             }
 
-            return false;
+            return setAny;
         }
 
         private bool setAABBInternal(ref AABB2i aabb, ref T value)
         {
-            bool contains = aabb.Contains(ref this.aabb);
-            bool intersects = aabb.Intersects(ref this.aabb);
+            //bool contains = this.aabb.Contains(ref aabb);
+            bool otherContains = aabb.Contains(ref this.aabb);
+            //bool overlaps = this.aabb.Overlap(ref aabb);
+            //bool otherOverlaps = aabb.Overlap(ref this.aabb);
+            //bool intersects = this.aabb.Intersects(ref aabb);
+            bool otherIntersects = aabb.Intersects(ref this.aabb);
 
-            if (!contains && intersects)
+            if (!otherContains && otherIntersects)
             {
+                if (Type == QuadType.Black && this.value.Value.Equals(value))
+                {
+                    return false;
+                }
+
                 bool subdivided = false;
                 var canSub = depth < resolution;
                 if (canSub && Type != QuadType.Grey)
@@ -302,7 +311,7 @@ namespace Quadtree
 
                 return anyChild || subdivided;
             }
-            else if (contains)
+            else if (otherContains)
             {
                 return setInternal(ref value);
             }
@@ -324,10 +333,10 @@ namespace Quadtree
             var anySet = setInternal(ref point, ref value);
             if (anySet)
             {
-                return unsubdivide();
+                unsubdivide();
             }
 
-            return false;
+            return anySet;
         }
 
         private bool setInternal(ref Point2i point, ref T value)
@@ -370,10 +379,10 @@ namespace Quadtree
             var anyUnset = unsetInternal();
             if (anyUnset)
             {
-                return unsubdivide();
+                unsubdivide();
             }
 
-            return false;
+            return anyUnset;
         }
 
         private bool unsetInternal()
@@ -416,10 +425,10 @@ namespace Quadtree
             var anyUnset = unsetInternal(ref point);
             if (anyUnset)
             {
-                return unsubdivide();
+                unsubdivide();
             }
-            
-            return false;
+
+            return anyUnset;
         }
 
         private bool unsetInternal(ref Point2i point)
@@ -459,6 +468,97 @@ namespace Quadtree
             return false;
 
             throw new InvalidOperationException("This is not supposed to happen!");
+        }
+
+        public bool UnsetAABB(AABB2i aabb)
+        {
+            return UnsetAABB(ref aabb);
+        }
+
+        public bool UnsetAABB(ref AABB2i aabb)
+        {
+            var unsetAny = unsetAABBInternal(ref aabb);
+
+            if (unsetAny)
+            {
+                unsubdivide();
+            }
+
+            return unsetAny;
+        }
+
+        private bool unsetAABBInternal(ref AABB2i aabb)
+        {
+            bool otherContains = aabb.Contains(ref this.aabb);
+            bool otherIntersects = aabb.Intersects(ref this.aabb);
+
+            if (!otherContains && otherIntersects)
+            {
+                if (Type == QuadType.White)
+                {
+                    return false;
+                }
+
+                bool subdivided = false;
+                var canSub = depth < resolution;
+                if (canSub && Type != QuadType.Grey)
+                {
+                    subdivide();
+                    subdivided = true;
+                }
+
+                bool anyChild = false;
+                if (canSub)
+                {
+                    foreach (var quad in quads)
+                    {
+                        anyChild |= quad.unsetAABBInternal(ref aabb);
+                    }
+                }
+
+                return anyChild || subdivided;
+            }
+            else if (otherContains)
+            {
+                return unsetInternal();
+            }
+            else
+            {
+                return false;
+            }
+
+            throw new InvalidOperationException("Set didn't fail nor succeed. This is not supposed to happen!");
+        }
+
+        public bool UnsetCircle(Point2i point, int radius)
+        {
+            var rectSize = (int)(radius / Math.Sqrt(2));
+            var testAABB = new AABB2i(point - new Point2i(rectSize, rectSize), point + new Point2i(rectSize, rectSize));
+
+            bool anyOuterUnset = false;
+            for (int i = point.X - radius; i <= point.X + radius; i++)
+            {
+                for (int j = point.Y - radius; j <= point.Y + radius; j++)
+                {
+                    var currentPoint = new Point2i(i, j);
+
+                    if (testAABB.Contains(currentPoint))
+                        continue;
+
+                    if ((point - currentPoint).Length() < radius)
+                    {
+                        anyOuterUnset |= unsetInternal(ref currentPoint);
+                    }
+                }
+            }
+
+            var anyAABBUnset = unsetAABBInternal(ref testAABB);
+            if (anyOuterUnset || anyAABBUnset)
+            {
+                unsubdivide();
+            }
+
+            return anyOuterUnset || anyAABBUnset;
         }
 
         private void subdivide()
