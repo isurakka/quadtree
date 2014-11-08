@@ -92,7 +92,7 @@ namespace Quadtree.Examples
                     if (anyChanged)
                     {
                         lastRegions = quadtree.FindConnectedComponents();
-                        lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
+                        lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v2.Count.CompareTo(v1.Count)));
 
                         StringBuilder sb = new StringBuilder();
                         sb.Append("{ ");
@@ -134,7 +134,7 @@ namespace Quadtree.Examples
                         maxAABB.LowerBound.X + maxAABB.Width / 2f,
                         maxAABB.LowerBound.Y + maxAABB.Height / 2f) * qtMultiplier;
                     var text = new Text((i + 1).ToString(), fontBold, 12u);
-                    text.Position = center - new Vector2f(text.GetGlobalBounds().Width / 2f, text.GetGlobalBounds().Height / 2f);
+                    text.Position = center - new Vector2f(text.GetGlobalBounds().Width / 2f, text.GetGlobalBounds().Height / 1.4f);
                     text.Color = Color.Black;
                     rw.Draw(text);
                 }
