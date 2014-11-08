@@ -1,4 +1,5 @@
-﻿using SFML.Graphics;
+﻿using FarseerPhysics.Dynamics;
+using SFML.Graphics;
 using SFML.Window;
 using System;
 using System.Collections.Generic;
@@ -19,8 +20,10 @@ namespace Quadtree.Examples
         static Font fontNormal = new Font("assets/DejaVuSans.ttf");
         static Font fontBold = new Font("assets/DejaVuSans-Bold.ttf");
 
+        float step = 1f / 60f;
+        float acc = 0f;
+
         RenderWindow rw;
-        RegionQuadtree<Color> quadtree;
         const int qtResolution = 7;
         const float qtMultiplier = 4f;
         Dictionary<AABB2i, QuadData> rects;
@@ -31,12 +34,9 @@ namespace Quadtree.Examples
         Text selectionText;
         Text radiusText;
         Text helpText;
-        List<List<RegionQuadtree<Color>>> lastRegions;
 
-        VertexArray quadVertexArray = new VertexArray(PrimitiveType.Quads);
-        VertexArray outlineVertexArray = new VertexArray(PrimitiveType.Lines);
-        List<uint> freeQuadIndexes = new List<uint>();
-        List<uint> freeOutlineIndexes = new List<uint>(); 
+        World world;
+        List<DestructibleBody> bodies = new List<DestructibleBody>();
 
         public Example()
         {
@@ -47,11 +47,10 @@ namespace Quadtree.Examples
             view.Move(new Vector2f(-60f, -60f));
             rw.SetView(view);
 
-            initQuadtree();
             initInput();
 
-            lastRegions = quadtree.FindConnectedComponents();
-            lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
+            world = new World(new Microsoft.Xna.Framework.Vector2(0f, 0f));
+            bodies.Add(new DestructibleBody(world, qtResolution, qtMultiplier));
         }
 
         public void Run()
@@ -64,6 +63,15 @@ namespace Quadtree.Examples
 
                 var dt = (float)TimeSpan.FromTicks(sw.ElapsedTicks).TotalSeconds;
                 sw.Restart();
+
+                acc += dt;
+
+                if (acc >= step)
+                {
+                    acc -= step;
+
+                    world.Step(step);
+                }
 
                 // Update
                 bool anyInput = Mouse.IsButtonPressed(Mouse.Button.Left) || Mouse.IsButtonPressed(Mouse.Button.Right);
@@ -79,30 +87,17 @@ namespace Quadtree.Examples
                     bool anyChanged = false;
                     if (Mouse.IsButtonPressed(Mouse.Button.Left))
                     {
-                        //quadtree.Set(qtPos, selections[selection].Item2);
-                        anyChanged |= quadtree.SetCircle(qtPos, (int)(selectionRadius / qtMultiplier), selections[selection].Item2);
-                        //quadtree.SetAABB(qtAABB, selections[selection].Item2);
+                        foreach (var item in bodies)
+                        {
+                            item.SetCircle(worldMouse, selectionRadius, selections[selection].Item2);
+                        }
                     }
                     else if (Mouse.IsButtonPressed(Mouse.Button.Right))
                     {
-                        //quadtree.Unset(qtPos);
-                        anyChanged |= quadtree.UnsetCircle(qtPos, (int)(selectionRadius / qtMultiplier));
-                    }
-
-                    if (anyChanged)
-                    {
-                        lastRegions = quadtree.FindConnectedComponents();
-                        lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v2.Count.CompareTo(v1.Count)));
-
-                        StringBuilder sb = new StringBuilder();
-                        sb.Append("{ ");
-                        for (int i = 0; i < lastRegions.Count; i++)
+                        foreach (var item in bodies)
                         {
-                            sb.Append(lastRegions[i].Count);
-                            sb.Append(", ");
+                            item.SetCircle(worldMouse, selectionRadius, null);
                         }
-                        sb.Append(" }");
-                        Debug.WriteLine(sb.ToString());
                     }
                 }
                 
@@ -116,27 +111,9 @@ namespace Quadtree.Examples
                 rw.Draw(radiusText);
                 rw.Draw(helpText);
 
-                rw.Draw(quadVertexArray);
-                rw.Draw(outlineVertexArray);
-
-                for (int i = 0; i < lastRegions.Count; i++)
+                foreach (var item in bodies)
                 {
-                    var maxAABB = new AABB2i(new Point2i(), new Point2i());
-                    for (int j = 0; j < lastRegions[i].Count; j++)
-                    {
-                        if (lastRegions[i][j].AABB.Width * lastRegions[i][j].AABB.Height > maxAABB.Width * maxAABB.Height)
-                        {
-                            maxAABB = lastRegions[i][j].AABB;
-                        }
-                    }
-
-                    var center = new Vector2f(
-                        maxAABB.LowerBound.X + maxAABB.Width / 2f,
-                        maxAABB.LowerBound.Y + maxAABB.Height / 2f) * qtMultiplier;
-                    var text = new Text((i + 1).ToString(), fontBold, 12u);
-                    text.Position = center - new Vector2f(text.GetGlobalBounds().Width / 2f, text.GetGlobalBounds().Height / 1.4f);
-                    text.Color = Color.Black;
-                    rw.Draw(text);
+                    item.Draw(rw);
                 }
 
                 rw.Display();
@@ -147,123 +124,6 @@ namespace Quadtree.Examples
         {
             public uint quadIndex;
             public uint outlineIndex;
-        }
-
-        private void initQuadtree()
-        {
-            quadtree = new RegionQuadtree<Color>(qtResolution);
-
-            rects = new Dictionary<AABB2i, QuadData>();
-
-            Action<object, RegionQuadtree<Color>.QuadEventArgs<Color>> onQuadAdded = (s, a) =>
-            {
-                var aabb = a.AABB;
-                var quadColor = a.Value;
-                var outlineColor = new Color(0, 0, 0, 100);
-
-                var rectPoints = new List<Vector2f>
-                {
-                    new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y) * qtMultiplier,
-                    new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y) * qtMultiplier,
-                    new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
-                    new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
-                };
-
-                const float outlineIntend = 1f;
-                var outlinePoints = new List<Vector2f>
-                {
-                    rectPoints[0] + new Vector2f(outlineIntend, outlineIntend),
-                    rectPoints[1] + new Vector2f(-outlineIntend, outlineIntend),
-                    rectPoints[2] + new Vector2f(-outlineIntend, -outlineIntend),
-                    rectPoints[3] + new Vector2f(outlineIntend, -outlineIntend),
-                };
-
-                var quadData = new QuadData();
-
-                // quad
-                if (freeQuadIndexes.Count > 0)
-                {
-                    quadData.quadIndex = freeQuadIndexes[freeQuadIndexes.Count - 1];
-                    freeQuadIndexes.RemoveAt(freeQuadIndexes.Count - 1);
-                }
-                else
-                {
-                    quadData.quadIndex = quadVertexArray.VertexCount;
-                    quadVertexArray.Resize(quadVertexArray.VertexCount + 4);
-                }
-
-                for (uint i = 0; i < 4; i++)
-                {
-                    quadVertexArray[quadData.quadIndex + i] = new Vertex(rectPoints[(int)i], quadColor);
-                }
-
-
-                // outline
-                if (freeOutlineIndexes.Count > 0)
-                {
-                    quadData.outlineIndex = freeOutlineIndexes[freeOutlineIndexes.Count - 1];
-                    freeOutlineIndexes.RemoveAt(freeOutlineIndexes.Count - 1);
-                }
-                else
-                {
-                    quadData.outlineIndex = outlineVertexArray.VertexCount;
-                    outlineVertexArray.Resize(outlineVertexArray.VertexCount + 8);
-                }
-
-                outlineVertexArray[quadData.outlineIndex] = new Vertex(outlinePoints[0] + new Vector2f(-outlineIntend, 0f), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 1] = new Vertex(outlinePoints[1] + new Vector2f(-outlineIntend, 0f), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 2] = new Vertex(outlinePoints[1] + new Vector2f(0f, -outlineIntend), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 3] = new Vertex(outlinePoints[2] + new Vector2f(0f, -outlineIntend), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 4] = new Vertex(outlinePoints[2] + new Vector2f(outlineIntend, 0f), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 5] = new Vertex(outlinePoints[3] + new Vector2f(outlineIntend, 0f), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 6] = new Vertex(outlinePoints[3] + new Vector2f(0f, outlineIntend), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 7] = new Vertex(outlinePoints[0] + new Vector2f(0f, outlineIntend), outlineColor);
-
-                rects.Add(aabb, quadData);
-            };
-            quadtree.OnQuadAdded += new EventHandler<RegionQuadtree<Color>.QuadEventArgs<Color>>(onQuadAdded);
-
-            Action<object, RegionQuadtree<Color>.QuadEventArgs<Color>> onQuadRemoving = (s, a) =>
-            {
-                var quadData = rects[a.AABB];
-                
-                // quad
-                freeQuadIndexes.Add(quadData.quadIndex);
-                for (uint i = 0; i < 4; i++)
-                {
-                    quadVertexArray[quadData.quadIndex + i] = new Vertex(new Vector2f(), Color.Transparent);
-                }
-
-                // outline
-                freeOutlineIndexes.Add(quadData.outlineIndex);
-                for (uint i = 0; i < 8; i++)
-                {
-                    outlineVertexArray[quadData.outlineIndex + i] = new Vertex(new Vector2f(), Color.Transparent);
-                }
-
-                rects.Remove(a.AABB);
-            };
-            quadtree.OnQuadRemoving += new EventHandler<RegionQuadtree<Color>.QuadEventArgs<Color>>(onQuadRemoving);
-
-            Action<object, RegionQuadtree<Color>.QuadChangedEventArgs<Color>> onQuadChanged = (s, a) =>
-            {
-                var quadData = rects[a.AABB];
-                var quadColor = a.Value;
-                var outlineColor = new Color(0, 0, 0, 100);
-
-                for (uint i = 0; i < 4; i++)
-                {
-                    quadVertexArray[quadData.quadIndex + i] = new Vertex(quadVertexArray[quadData.quadIndex + i].Position, quadColor);
-                }
-
-                for (uint i = 0; i < 8; i++)
-                {
-                    outlineVertexArray[quadData.outlineIndex + i] = new Vertex(outlineVertexArray[quadData.outlineIndex + i].Position, outlineColor);
-                }
-            };
-            quadtree.OnQuadChanged += new EventHandler<RegionQuadtree<Color>.QuadChangedEventArgs<Color>>(onQuadChanged);
-
-            quadtree.Set(Color.White);
         }
 
         private void initInput()
@@ -310,9 +170,7 @@ namespace Quadtree.Examples
                         break;
                     case Keyboard.Key.R:
                     {
-                        quadtree.Set(Color.White);
-                        lastRegions = quadtree.FindConnectedComponents();
-                        lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
+                        //quadtree.Set(Color.White);
                         break;
                     }
                 }
