@@ -228,7 +228,8 @@ namespace Quadtree
         {
             var rectSize = (int)(radius / Math.Sqrt(2));   
             var testAABB = new AABB2i(point - new Point2i(rectSize, rectSize), point + new Point2i(rectSize, rectSize));
-            bool anySet = false;
+
+            bool anyOuterSet = false;
             for (int i = point.X - radius; i <= point.X + radius; i++)
             {
                 for (int j = point.Y - radius; j <= point.Y + radius; j++)
@@ -240,21 +241,18 @@ namespace Quadtree
 
                     if ((point - currentPoint).Length() < radius)
                     {
-                        if (setInternal(ref currentPoint, ref value))
-                        {
-                            anySet = true;
-                        }
+                        anyOuterSet |= setInternal(ref currentPoint, ref value);
                     }
                 }
             }
 
-            var ret = setAABBInternal(ref testAABB, ref value);
-            if (anySet || ret)
+            var anyAABBSet = setAABBInternal(ref testAABB, ref value);
+            if (anyOuterSet || anyAABBSet)
             {
-                unsubdivide();
+                return unsubdivide();
             }
 
-            return ret;
+            return false;
         }
 
         public bool SetAABB(AABB2i aabb, T value)
@@ -264,13 +262,14 @@ namespace Quadtree
 
         public bool SetAABB(ref AABB2i aabb, ref T value)
         {
-            var ret = setAABBInternal(ref aabb, ref value);
-            if (ret)
+            var setAny = setAABBInternal(ref aabb, ref value);
+
+            if (setAny)
             {
-                unsubdivide();
+                return unsubdivide();
             }
 
-            return ret;
+            return false;
         }
 
         private bool setAABBInternal(ref AABB2i aabb, ref T value)
@@ -322,12 +321,13 @@ namespace Quadtree
 
         public bool Set(ref Point2i point, ref T value)
         {
-            var ret = setInternal(ref point, ref value);
-            if (ret)
+            var anySet = setInternal(ref point, ref value);
+            if (anySet)
             {
-                unsubdivide();
+                return unsubdivide();
             }
-            return ret;
+
+            return false;
         }
 
         private bool setInternal(ref Point2i point, ref T value)
@@ -367,13 +367,13 @@ namespace Quadtree
 
         public bool Unset()
         {
-            var ret = unsetInternal();
-            if (ret)
+            var anyUnset = unsetInternal();
+            if (anyUnset)
             {
-                unsubdivide();
+                return unsubdivide();
             }
 
-            return ret;
+            return false;
         }
 
         private bool unsetInternal()
@@ -413,9 +413,13 @@ namespace Quadtree
 
         public bool Unset(ref Point2i point)
         {
-            var ret = unsetInternal(ref point);
-            unsubdivide();
-            return ret;
+            var anyUnset = unsetInternal(ref point);
+            if (anyUnset)
+            {
+                return unsubdivide();
+            }
+            
+            return false;
         }
 
         private bool unsetInternal(ref Point2i point)
@@ -446,7 +450,7 @@ namespace Quadtree
 
             foreach (var quad in quads)
             {
-                if (quad.Unset(ref point))
+                if (quad.unsetInternal(ref point))
                 {
                     return true;
                 }
