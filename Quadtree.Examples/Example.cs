@@ -21,7 +21,7 @@ namespace Quadtree.Examples
 
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
-        const int qtResolution = 5;
+        const int qtResolution = 7;
         const float qtMultiplier = 4f;
         Dictionary<AABB2i, QuadData> rects;
 
@@ -37,19 +37,21 @@ namespace Quadtree.Examples
         VertexArray outlineVertexArray = new VertexArray(PrimitiveType.Lines);
         List<uint> freeQuadIndexes = new List<uint>();
         List<uint> freeOutlineIndexes = new List<uint>();
-        Vector2f position = new Vector2f(200f, 200f);
+        Vector2f position;
 
         public Example()
         {
             rw = new RenderWindow(new VideoMode(1024u, 512u + 128u), "Quadtree example", Styles.Close, new ContextSettings() { AntialiasingLevel = 8 });
             rw.Closed += (s, a) => rw.Close();
 
-            var view = rw.GetView();
-            view.Move(new Vector2f(-60f, -60f));
-            rw.SetView(view);
+            //var view = rw.GetView();
+            //view.Move(new Vector2f(512f, 256f));
+            //rw.SetView(view);
 
             initQuadtree();
             initInput();
+
+            position = new Vector2f(256f + 30f, 256f + 128f - 30f) - new Vector2f(quadtree.AABB.Width / 2f, quadtree.AABB.Height / 2f) * qtMultiplier;
 
             for (int i = 0; i < 1; i++)
             {
@@ -75,7 +77,7 @@ namespace Quadtree.Examples
                 bool anyInput = Mouse.IsButtonPressed(Mouse.Button.Left) || Mouse.IsButtonPressed(Mouse.Button.Right);
                 if (anyInput)
                 {
-                    var worldMouse = rw.MapPixelToCoords(Mouse.GetPosition(rw));
+                    var worldMouse = rw.MapPixelToCoords(Mouse.GetPosition(rw)) - position;
                     var sfmlPos = worldMouse * (1f / qtMultiplier);
                     var aabbMin = (worldMouse - new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
                     var aabbMax = (worldMouse + new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
@@ -117,8 +119,11 @@ namespace Quadtree.Examples
                 // Draw
 
                 // Draw quadtree
-                rw.Draw(quadVertexArray);
-                rw.Draw(outlineVertexArray);
+                var states = RenderStates.Default;
+                states.Transform.Translate(position);
+
+                rw.Draw(quadVertexArray, states);
+                rw.Draw(outlineVertexArray, states);
 
                 for (int i = 0; i < lastRegions.Count; i++)
                 {
@@ -137,16 +142,21 @@ namespace Quadtree.Examples
                     var text = new Text((i + 1).ToString(), fontBold, 12u);
                     text.Position = center - new Vector2f(text.GetGlobalBounds().Width / 2f, text.GetGlobalBounds().Height / 1.4f);
                     text.Color = Color.Black;
-                    rw.Draw(text);
+                    rw.Draw(text, states);
                 }
 
                 // Draw help texts
+                var view = rw.GetView();
+                rw.SetView(rw.DefaultView);
+
                 var sel = selections[selection];
                 selectionText.DisplayedString = sel.Item1;
                 selectionText.Color = sel.Item2;
                 rw.Draw(selectionText);
                 rw.Draw(radiusText);
                 rw.Draw(helpText);
+
+                rw.SetView(view);
 
                 rw.Display();
             }
@@ -280,7 +290,7 @@ namespace Quadtree.Examples
 
                 this.quadtree = newRoot;
 
-                //position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
+                position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
             };
             quadtree.OnExpand += new EventHandler<RegionQuadtree<Color>.QuadExpandEventArgs<Color>>(onExpand);
 
@@ -354,13 +364,13 @@ namespace Quadtree.Examples
             };
 
             selectionText = new Text("", fontBold, 32u);
-            selectionText.Position = new Vector2f(0f, -40f);
+            selectionText.Position = new Vector2f(40f, 40f);
 
             radiusText = new Text("Radius " + selectionRadius, fontBold, 32u);
-            radiusText.Position = new Vector2f(312f, -40f);
+            radiusText.Position = new Vector2f(312f + 40, 40f);
 
             helpText = new Text("", fontNormal, 20u);
-            helpText.Position = new Vector2f(512 + 40, -40f + 34f);
+            helpText.Position = new Vector2f(512 + 60, 60f + 34f);
             helpText.DisplayedString = "Use numbers 1 - 8 to select a color.\n\nLeft click to place current color.\n\nRight click to remove.\n\nMouse wheel to change radius.\n\nR to reset.";
         }
     }
