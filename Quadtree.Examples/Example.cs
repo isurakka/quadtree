@@ -21,7 +21,7 @@ namespace Quadtree.Examples
 
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
-        const int qtResolution = 0;
+        const int qtResolution = 5;
         const float qtMultiplier = 4f;
         Dictionary<AABB2i, QuadData> rects;
 
@@ -51,7 +51,10 @@ namespace Quadtree.Examples
             initQuadtree();
             initInput();
 
-            quadtree.ExpandFromCenter();
+            for (int i = 0; i < 1; i++)
+            {
+               // quadtree.ExpandFromCenter();
+            }
 
             lastRegions = quadtree.FindConnectedComponents();
             lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
@@ -72,7 +75,7 @@ namespace Quadtree.Examples
                 bool anyInput = Mouse.IsButtonPressed(Mouse.Button.Left) || Mouse.IsButtonPressed(Mouse.Button.Right);
                 if (anyInput)
                 {
-                    var worldMouse = rw.MapPixelToCoords(Mouse.GetPosition(rw)) - position;
+                    var worldMouse = rw.MapPixelToCoords(Mouse.GetPosition(rw));
                     var sfmlPos = worldMouse * (1f / qtMultiplier);
                     var aabbMin = (worldMouse - new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
                     var aabbMax = (worldMouse + new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
@@ -158,6 +161,7 @@ namespace Quadtree.Examples
         private void initQuadtree()
         {
             quadtree = new RegionQuadtree<Color>(qtResolution);
+            quadtree.AutoExpand = true;
 
             rects = new Dictionary<AABB2i, QuadData>();
 
@@ -169,10 +173,10 @@ namespace Quadtree.Examples
 
                 var rectPoints = new List<Vector2f>
                 {
-                    position + new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y) * qtMultiplier,
-                    position + new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y) * qtMultiplier,
-                    position + new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
-                    position + new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
+                    new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y) * qtMultiplier,
+                    new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y) * qtMultiplier,
+                    new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
+                    new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
                 };
 
                 const float outlineIntend = 1f;
@@ -276,7 +280,7 @@ namespace Quadtree.Examples
 
                 this.quadtree = newRoot;
 
-                position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
+                //position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
             };
             quadtree.OnExpand += new EventHandler<RegionQuadtree<Color>.QuadExpandEventArgs<Color>>(onExpand);
 
@@ -330,6 +334,11 @@ namespace Quadtree.Examples
                         quadtree.Set(Color.White);
                         lastRegions = quadtree.FindConnectedComponents();
                         lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
+                        break;
+                    }
+                    case Keyboard.Key.E:
+                    {
+                        quadtree.ExpandFromCenter();
                         break;
                     }
                 }
