@@ -13,8 +13,8 @@ namespace Quadtree
     public class RegionQuadtree<T> : IEnumerable<T>
         where T: struct
     {
-        private readonly int resolution;
-        private readonly int depth;
+        private int resolution;
+        private int depth;
 
         private T? value;
         private RegionQuadtree<T>[] quads;
@@ -87,6 +87,7 @@ namespace Quadtree
         public event EventHandler<QuadEventArgs<T>> OnQuadAdded;
         public event EventHandler<QuadEventArgs<T>> OnQuadRemoving;
         public event EventHandler<QuadChangedEventArgs<T>> OnQuadChanged;
+        public event EventHandler<QuadExpandEventArgs<T>> OnExpand;
 
         private bool autoExpand = false;
         public bool AutoExpand 
@@ -135,6 +136,31 @@ namespace Quadtree
                 : base(quadTree)
             {
                 this.oldValue = oldValue;
+            }
+        }
+
+        public class QuadExpandEventArgs<T> : EventArgs
+            where T : struct
+        {
+            private RegionQuadtree<T> newRoot;
+            public RegionQuadtree<T> NewRoot
+            {
+                get { return newRoot; }
+            }
+
+            private Point2i offset;
+            public Point2i Offset
+            {
+                get
+                {
+                    return offset;
+                }
+            }
+
+            public QuadExpandEventArgs(RegionQuadtree<T> newRoot, Point2i offset)
+            {
+                this.newRoot = newRoot;
+                this.offset = offset;
             }
         }
 
@@ -588,26 +614,27 @@ namespace Quadtree
 
         private void subdivide()
         {
-            quads = new RegionQuadtree<T>[4];
-            quads[0] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
-                aabb.LowerBound,
-                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height / 2)));
-            quads[1] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
-                aabb.LowerBound + new Point2i(aabb.Width / 2, 0),
-                aabb.LowerBound + new Point2i(aabb.Width, aabb.Height / 2)));
-            quads[2] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
-                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height / 2),
-                aabb.LowerBound + new Point2i(aabb.Width, aabb.Height)));
-            quads[3] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
-                aabb.LowerBound + new Point2i(0, aabb.Height / 2),
-                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height)));
-
+            var oldValue = value;
             if (this.value != null)
             {
                 propagateEvent(EventType.Removing);
 
                 value = null;
             }
+
+            quads = new RegionQuadtree<T>[4];
+            quads[0] = new RegionQuadtree<T>(resolution, depth + 1, oldValue, this, new AABB2i(
+                aabb.LowerBound,
+                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height / 2)));
+            quads[1] = new RegionQuadtree<T>(resolution, depth + 1, oldValue, this, new AABB2i(
+                aabb.LowerBound + new Point2i(aabb.Width / 2, 0),
+                aabb.LowerBound + new Point2i(aabb.Width, aabb.Height / 2)));
+            quads[2] = new RegionQuadtree<T>(resolution, depth + 1, oldValue, this, new AABB2i(
+                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height / 2),
+                aabb.LowerBound + new Point2i(aabb.Width, aabb.Height)));
+            quads[3] = new RegionQuadtree<T>(resolution, depth + 1, oldValue, this, new AABB2i(
+                aabb.LowerBound + new Point2i(0, aabb.Height / 2),
+                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height)));
         }
 
         private bool unsubdivide()
@@ -788,6 +815,16 @@ namespace Quadtree
 
         public RegionQuadtree<T> ExpandFromCenter()
         {
+            if (Type != QuadType.Grey)
+            {
+                subdivide();
+            }
+
+            foreach (var quad in Traverse())
+            {
+                quad.propagateEvent(EventType.Removing);
+            }
+
             var newRoot = new RegionQuadtree<T>(resolution + 1);
             newRoot.subdivide();
             foreach (var child in newRoot.quads)
@@ -798,10 +835,37 @@ namespace Quadtree
             // Set children
             foreach (var quadDirection in QDO.Quadrants)
             {
+                var oldQuad = newRoot[quadDirection][QDO.OpSide(quadDirection)];
+
                 newRoot[quadDirection][QDO.OpSide(quadDirection)] = this[quadDirection];
+
+                var newQuad = newRoot[quadDirection][QDO.OpSide(quadDirection)];
+                newQuad.depth = oldQuad.depth;
+                newQuad.resolution = oldQuad.resolution;
+                newQuad.parent = oldQuad.parent;
+                newQuad.aabb = oldQuad.aabb;
+
+            }
+
+            // Call the event
+            if (OnExpand != null)
+            {
+                var offset = new Point2i(quads[0].aabb.Width, quads[0].aabb.Height);
+                OnExpand(this, new QuadExpandEventArgs<T>(newRoot, offset));
             }
 
             // Move events
+            // TODO: Test this works properly
+            newRoot.OnQuadAdded = OnQuadAdded;
+            newRoot.OnQuadRemoving = OnQuadRemoving;
+            newRoot.OnQuadChanged = OnQuadChanged;
+
+            foreach (var quad in newRoot.Traverse())
+            {
+                quad.propagateEvent(EventType.Added);
+            }
+
+            newRoot.OnExpand = OnExpand;
 
             return newRoot;
         }

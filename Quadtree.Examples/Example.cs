@@ -21,7 +21,7 @@ namespace Quadtree.Examples
 
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
-        const int qtResolution = 7;
+        const int qtResolution = 0;
         const float qtMultiplier = 4f;
         Dictionary<AABB2i, QuadData> rects;
 
@@ -36,7 +36,8 @@ namespace Quadtree.Examples
         VertexArray quadVertexArray = new VertexArray(PrimitiveType.Quads);
         VertexArray outlineVertexArray = new VertexArray(PrimitiveType.Lines);
         List<uint> freeQuadIndexes = new List<uint>();
-        List<uint> freeOutlineIndexes = new List<uint>(); 
+        List<uint> freeOutlineIndexes = new List<uint>();
+        Vector2f position = new Vector2f(200f, 200f);
 
         public Example()
         {
@@ -49,6 +50,8 @@ namespace Quadtree.Examples
 
             initQuadtree();
             initInput();
+
+            quadtree.ExpandFromCenter();
 
             lastRegions = quadtree.FindConnectedComponents();
             lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
@@ -69,7 +72,7 @@ namespace Quadtree.Examples
                 bool anyInput = Mouse.IsButtonPressed(Mouse.Button.Left) || Mouse.IsButtonPressed(Mouse.Button.Right);
                 if (anyInput)
                 {
-                    var worldMouse = rw.MapPixelToCoords(Mouse.GetPosition(rw));
+                    var worldMouse = rw.MapPixelToCoords(Mouse.GetPosition(rw)) - position;
                     var sfmlPos = worldMouse * (1f / qtMultiplier);
                     var aabbMin = (worldMouse - new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
                     var aabbMax = (worldMouse + new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
@@ -109,13 +112,8 @@ namespace Quadtree.Examples
                 rw.Clear();
 
                 // Draw
-                var sel = selections[selection];
-                selectionText.DisplayedString = sel.Item1;
-                selectionText.Color = sel.Item2;
-                rw.Draw(selectionText);
-                rw.Draw(radiusText);
-                rw.Draw(helpText);
 
+                // Draw quadtree
                 rw.Draw(quadVertexArray);
                 rw.Draw(outlineVertexArray);
 
@@ -138,6 +136,14 @@ namespace Quadtree.Examples
                     text.Color = Color.Black;
                     rw.Draw(text);
                 }
+
+                // Draw help texts
+                var sel = selections[selection];
+                selectionText.DisplayedString = sel.Item1;
+                selectionText.Color = sel.Item2;
+                rw.Draw(selectionText);
+                rw.Draw(radiusText);
+                rw.Draw(helpText);
 
                 rw.Display();
             }
@@ -163,10 +169,10 @@ namespace Quadtree.Examples
 
                 var rectPoints = new List<Vector2f>
                 {
-                    new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y) * qtMultiplier,
-                    new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y) * qtMultiplier,
-                    new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
-                    new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
+                    position + new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y) * qtMultiplier,
+                    position + new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y) * qtMultiplier,
+                    position + new Vector2f(aabb.LowerBound.X + aabb.Width, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
+                    position + new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
                 };
 
                 const float outlineIntend = 1f;
@@ -262,6 +268,17 @@ namespace Quadtree.Examples
                 }
             };
             quadtree.OnQuadChanged += new EventHandler<RegionQuadtree<Color>.QuadChangedEventArgs<Color>>(onQuadChanged);
+
+            Action<object, RegionQuadtree<Color>.QuadExpandEventArgs<Color>> onExpand = (s, a) =>
+            {
+                var oldRoot = quadtree;
+                var newRoot = a.NewRoot;
+
+                this.quadtree = newRoot;
+
+                position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
+            };
+            quadtree.OnExpand += new EventHandler<RegionQuadtree<Color>.QuadExpandEventArgs<Color>>(onExpand);
 
             quadtree.Set(Color.White);
         }
