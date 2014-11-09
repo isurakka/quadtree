@@ -146,6 +146,14 @@ namespace Quadtree.Examples
                     rw.Draw(text, states);
                 }
 
+                // For jonah
+                var outerRect = new RectangleShape(new Vector2f(quadtree.AABB.Width * qtMultiplier, quadtree.AABB.Height * qtMultiplier));
+                outerRect.Position = position;
+                outerRect.FillColor = Color.Transparent;
+                outerRect.OutlineColor = new Color(255, 255, 255, 40);
+                outerRect.OutlineThickness = 3f;
+                rw.Draw(outerRect);
+
                 // Draw help texts
                 var view = rw.GetView();
                 rw.SetView(rw.DefaultView);
