@@ -116,10 +116,6 @@
       <Project>{88bcbf55-0eda-45b6-a979-13c3ecf40c96}</Project>
       <Name>Quadtree</Name>
     </ProjectReference>
-    <ProjectReference Include="FarseerPhysicsEngine\Farseer Physics.csproj">
-      <Project>{a4610e4c-dd34-428b-babb-779ca0b5993a}</Project>
-      <Name>Farseer Physics</Name>
-    </ProjectReference>
     <ProjectReference Include="SFML.Net\src\Graphics\sfml-graphics.csproj">
       <Project>{46786269-57b9-48e7-aa4f-8f4d84609fe6}</Project>
       <Name>sfml-graphics</Name>
