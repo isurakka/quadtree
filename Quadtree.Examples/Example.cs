@@ -21,7 +21,7 @@ namespace Quadtree.Examples
 
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
-        const int qtResolution = 7;
+        int qtResolution = 6;
         const float qtMultiplier = 4f;
         Dictionary<AABB2i, QuadData> rects;
 
@@ -31,6 +31,7 @@ namespace Quadtree.Examples
         Text selectionText;
         Text radiusText;
         Text helpText;
+        Text resolutionText;
         List<List<RegionQuadtree<Color>>> lastRegions;
 
         VertexArray quadVertexArray = new VertexArray(PrimitiveType.Quads);
@@ -41,7 +42,7 @@ namespace Quadtree.Examples
 
         public Example()
         {
-            rw = new RenderWindow(new VideoMode(1024u, 512u + 128u), "Quadtree example", Styles.Close, new ContextSettings() { AntialiasingLevel = 8 });
+            rw = new RenderWindow(new VideoMode(1600u, 900u), "Quadtree example", Styles.Close, new ContextSettings() { AntialiasingLevel = 8 });
             rw.Closed += (s, a) => rw.Close();
 
             //var view = rw.GetView();
@@ -51,7 +52,7 @@ namespace Quadtree.Examples
             initQuadtree();
             initInput();
 
-            position = new Vector2f(256f + 30f, 256f + 128f - 30f) - new Vector2f(quadtree.AABB.Width / 2f, quadtree.AABB.Height / 2f) * qtMultiplier;
+            position = getGUIPos(0.3f, 0.5f) - new Vector2f(quadtree.AABB.Width / 2f, quadtree.AABB.Height / 2f) * qtMultiplier;
 
             for (int i = 0; i < 1; i++)
             {
@@ -154,6 +155,7 @@ namespace Quadtree.Examples
                 selectionText.Color = sel.Item2;
                 rw.Draw(selectionText);
                 rw.Draw(radiusText);
+                rw.Draw(resolutionText);
                 rw.Draw(helpText);
 
                 rw.SetView(view);
@@ -290,7 +292,11 @@ namespace Quadtree.Examples
 
                 this.quadtree = newRoot;
 
+                qtResolution++;
+
                 position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
+
+                resolutionText.DisplayedString = "Resolution " + quadtree.AABB.Width * qtMultiplier + "x" + quadtree.AABB.Height * qtMultiplier;
             };
             quadtree.OnExpand += new EventHandler<RegionQuadtree<Color>.QuadExpandEventArgs<Color>>(onExpand);
 
@@ -348,6 +354,11 @@ namespace Quadtree.Examples
                     }
                     case Keyboard.Key.E:
                     {
+                        if (qtResolution > 18)
+                        {
+                            break;
+                        }
+
                         quadtree.ExpandFromCenter();
                         break;
                     }
@@ -364,14 +375,22 @@ namespace Quadtree.Examples
             };
 
             selectionText = new Text("", fontBold, 32u);
-            selectionText.Position = new Vector2f(40f, 40f);
+            selectionText.Position = getGUIPos(0.03f, 0.03f);
 
             radiusText = new Text("Radius " + selectionRadius, fontBold, 32u);
-            radiusText.Position = new Vector2f(312f + 40, 40f);
+            radiusText.Position = getGUIPos(0.3f, 0.03f);
+
+            resolutionText = new Text("Resolution " + quadtree.AABB.Width * qtMultiplier + "x" + quadtree.AABB.Height * qtMultiplier, fontBold, 32u);
+            resolutionText.Position = getGUIPos(0.6f, 0.03f);
 
             helpText = new Text("", fontNormal, 20u);
-            helpText.Position = new Vector2f(512 + 60, 60f + 34f);
+            helpText.Position = getGUIPos(0.6f, 0.1f);
             helpText.DisplayedString = "Use numbers 1 - 8 to select a color.\n\nLeft click to place current color.\n\nRight click to remove.\n\nMouse wheel to change radius.\n\nR to reset.";
+        }
+
+        private Vector2f getGUIPos(float x, float y)
+        {
+            return new Vector2f(rw.Size.X * x, rw.Size.Y * y);
         }
     }
 }

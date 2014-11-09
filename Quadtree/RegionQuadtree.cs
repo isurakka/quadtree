@@ -239,11 +239,11 @@ namespace Quadtree
             }
         }
 
-        private RegionQuadtree<T> findParent()
+        private RegionQuadtree<T> findRoot()
         {
             if (parent != null)
             {
-                return parent.findParent();
+                return parent.findRoot();
             }
 
             return this;
@@ -297,6 +297,35 @@ namespace Quadtree
         {
             var rectSize = (int)(radius / Math.Sqrt(2));   
             var testAABB = new AABB2i(point - new Point2i(rectSize, rectSize), point + new Point2i(rectSize, rectSize));
+
+            for (int i = point.X - radius; i <= point.X + radius; i++)
+            {
+                for (int j = point.Y - radius; j <= point.Y + radius; j++)
+                {
+                    var currentPoint = new Point2i(i, j);
+
+                    if (testAABB.Contains(currentPoint))
+                        continue;
+
+                    if ((point - currentPoint).Length() < radius)
+                    {
+                        if (isPointOutside(currentPoint))
+                        {
+                            if (findRoot() == this && AutoExpand)
+                            {
+                                RegionQuadtree<T> newRoot = this;
+                                if (newRoot.isPointOutside(currentPoint))
+                                {
+                                    newRoot = newRoot.ExpandFromCenter();
+                                    point += new Point2i(newRoot.aabb.Width / 4, newRoot.aabb.Height / 4);
+                                }
+
+                                return newRoot.SetCircle(point, radius, value);
+                            }
+                        }
+                    }
+                }
+            }
 
             bool anyOuterSet = false;
             for (int i = point.X - radius; i <= point.X + radius; i++)
@@ -406,7 +435,6 @@ namespace Quadtree
             {
                 return false;
             }
-                
 
             if (Type == QuadType.Black && this.value.Value.Equals(value))
             {
