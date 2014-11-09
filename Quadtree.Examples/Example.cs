@@ -140,7 +140,7 @@ namespace Quadtree.Examples
                     var center = new Vector2f(
                         maxAABB.LowerBound.X + maxAABB.Width / 2f,
                         maxAABB.LowerBound.Y + maxAABB.Height / 2f) * qtMultiplier;
-                    var text = new Text((i + 1).ToString(), fontBold, 12u);
+                    var text = new Text((i + 1).ToString(), fontBold, 14u);
                     text.Position = center - new Vector2f(text.GetGlobalBounds().Width / 2f, text.GetGlobalBounds().Height / 1.4f);
                     text.Color = Color.Black;
                     rw.Draw(text, states);
