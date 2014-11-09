@@ -45,6 +45,26 @@ namespace Quadtree
                         throw new ArgumentException("Not valid quad direction");
                 }
             }
+            set
+            {
+                switch (d)
+                {
+                    case QuadDirection.NorthWest:
+                        quads[0] = value;
+                        break;
+                    case QuadDirection.NorthEast:
+                        quads[1] = value;
+                        break;
+                    case QuadDirection.SouthEast:
+                        quads[2] = value;
+                        break;
+                    case QuadDirection.SouthWest:
+                        quads[3] = value;
+                        break;
+                    default:
+                        throw new ArgumentException("Not valid quad direction");
+                }
+            }
         }
 
         public QuadType Type
@@ -67,6 +87,19 @@ namespace Quadtree
         public event EventHandler<QuadEventArgs<T>> OnQuadAdded;
         public event EventHandler<QuadEventArgs<T>> OnQuadRemoving;
         public event EventHandler<QuadChangedEventArgs<T>> OnQuadChanged;
+
+        private bool autoExpand = false;
+        public bool AutoExpand 
+        { 
+            get
+            {
+                return autoExpand;
+            }
+            set
+            {
+                autoExpand = value;
+            }
+        }
 
         public class QuadEventArgs<T> : EventArgs
             where T: struct
@@ -746,6 +779,31 @@ namespace Quadtree
             }
 
             return false;
+        }
+
+        private bool isPointOutside(Point2i point)
+        {
+            return !aabb.Contains(point);
+        }
+
+        public RegionQuadtree<T> ExpandFromCenter()
+        {
+            var newRoot = new RegionQuadtree<T>(resolution + 1);
+            newRoot.subdivide();
+            foreach (var child in newRoot.quads)
+            {
+                child.subdivide();
+            }
+
+            // Set children
+            foreach (var quadDirection in QDO.Quadrants)
+            {
+                newRoot[quadDirection][QDO.OpSide(quadDirection)] = this[quadDirection];
+            }
+
+            // Move events
+
+            return newRoot;
         }
 
         public List<List<RegionQuadtree<T>>> FindConnectedComponents()
