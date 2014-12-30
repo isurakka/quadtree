@@ -6,6 +6,9 @@
 *.user
 *.sln.docstates
 
+# Mono user preferences
+*.userprefs
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
