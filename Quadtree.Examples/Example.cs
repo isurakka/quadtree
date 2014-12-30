@@ -21,6 +21,24 @@ namespace Quadtree.Examples
 			}
 		}
 
+		const string vertexSource =
+@"#version 150 core
+in vec2 position;
+in vec3 color;
+out vec3 Color;
+
+void main() {
+	Color = color;
+	gl_Position = vec4(position, 0.0, 1.0);
+}";
+		const string fragmentSource =
+@"#version 150 core
+in vec3 Color;
+out vec4 outColor;
+void main() {
+	outColor = vec4(Color, 1.0);
+}";
+
 		//static Font fontNormal = new Font("assets/DejaVuSans.ttf");
 		//static Font fontBold = new Font("assets/DejaVuSans-Bold.ttf");
 
@@ -38,16 +56,21 @@ namespace Quadtree.Examples
 		List<uint> freeOutlineIndexes = new List<uint>();
 		Vector2 position;
 
+		float[] posResColorData = new float[] {
+			0f, 0f, 0f, 0f
+		};
+
 		public Example()
 			: base(800, 600)
 		{
-
 			//var view = rw.GetView();
 			//view.Move(new Vector2f(512f, 256f));
 			//rw.SetView(view);
 
 			initQuadtree();
 			initInput();
+
+			posResColorData = new float[quadtree.AABB.Width * quadtree.AABB.Height];
 
 			position = getGUIPos(0.3f, 0.5f) - new Vector2(quadtree.AABB.Width / 2f, quadtree.AABB.Height / 2f) * qtMultiplier;
 
