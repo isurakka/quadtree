@@ -13,8 +13,8 @@ namespace Quadtree
     public class RegionQuadtree<T> : IEnumerable<T>
         where T: struct
     {
-        private readonly int resolution;
-        private readonly int depth;
+        private int resolution;
+        private int depth;
 
         private T? value;
         private RegionQuadtree<T>[] quads;
@@ -45,6 +45,26 @@ namespace Quadtree
                         throw new ArgumentException("Not valid quad direction");
                 }
             }
+            set
+            {
+                switch (d)
+                {
+                    case QuadDirection.NorthWest:
+                        quads[0] = value;
+                        break;
+                    case QuadDirection.NorthEast:
+                        quads[1] = value;
+                        break;
+                    case QuadDirection.SouthEast:
+                        quads[2] = value;
+                        break;
+                    case QuadDirection.SouthWest:
+                        quads[3] = value;
+                        break;
+                    default:
+                        throw new ArgumentException("Not valid quad direction");
+                }
+            }
         }
 
         public QuadType Type
@@ -67,6 +87,20 @@ namespace Quadtree
         public event EventHandler<QuadEventArgs<T>> OnQuadAdded;
         public event EventHandler<QuadEventArgs<T>> OnQuadRemoving;
         public event EventHandler<QuadChangedEventArgs<T>> OnQuadChanged;
+        public event EventHandler<QuadExpandEventArgs<T>> OnExpand;
+
+        private bool autoExpand = false;
+        public bool AutoExpand 
+        { 
+            get
+            {
+                return autoExpand;
+            }
+            set
+            {
+                autoExpand = value;
+            }
+        }
 
         public class QuadEventArgs<T> : EventArgs
             where T: struct
@@ -102,6 +136,31 @@ namespace Quadtree
                 : base(quadTree)
             {
                 this.oldValue = oldValue;
+            }
+        }
+
+        public class QuadExpandEventArgs<T> : EventArgs
+            where T : struct
+        {
+            private RegionQuadtree<T> newRoot;
+            public RegionQuadtree<T> NewRoot
+            {
+                get { return newRoot; }
+            }
+
+            private Point2i offset;
+            public Point2i Offset
+            {
+                get
+                {
+                    return offset;
+                }
+            }
+
+            public QuadExpandEventArgs(RegionQuadtree<T> newRoot, Point2i offset)
+            {
+                this.newRoot = newRoot;
+                this.offset = offset;
             }
         }
 
@@ -180,6 +239,16 @@ namespace Quadtree
             }
         }
 
+        private RegionQuadtree<T> findRoot()
+        {
+            if (parent != null)
+            {
+                return parent.findRoot();
+            }
+
+            return this;
+        }
+
         public bool Set(T value)
         {
             return Set(ref value);
@@ -228,6 +297,35 @@ namespace Quadtree
         {
             var rectSize = (int)(radius / Math.Sqrt(2));   
             var testAABB = new AABB2i(point - new Point2i(rectSize, rectSize), point + new Point2i(rectSize, rectSize));
+
+            for (int i = point.X - radius; i <= point.X + radius; i++)
+            {
+                for (int j = point.Y - radius; j <= point.Y + radius; j++)
+                {
+                    var currentPoint = new Point2i(i, j);
+
+                    if (testAABB.Contains(currentPoint))
+                        continue;
+
+                    if ((point - currentPoint).Length() < radius)
+                    {
+                        if (isPointOutside(currentPoint))
+                        {
+                            if (findRoot() == this && AutoExpand)
+                            {
+                                RegionQuadtree<T> newRoot = this;
+                                if (newRoot.isPointOutside(currentPoint))
+                                {
+                                    newRoot = newRoot.ExpandFromCenter();
+                                    point += new Point2i(newRoot.aabb.Width / 4, newRoot.aabb.Height / 4);
+                                }
+
+                                return newRoot.SetCircle(point, radius, value);
+                            }
+                        }
+                    }
+                }
+            }
 
             bool anyOuterSet = false;
             for (int i = point.X - radius; i <= point.X + radius; i++)
@@ -333,8 +431,10 @@ namespace Quadtree
 
         private bool setInternal(ref Point2i point, ref T value)
         {
-            if (!aabb.Contains(point))
+            if (isPointOutside(point))
+            {
                 return false;
+            }
 
             if (Type == QuadType.Black && this.value.Value.Equals(value))
             {
@@ -555,26 +655,27 @@ namespace Quadtree
 
         private void subdivide()
         {
-            quads = new RegionQuadtree<T>[4];
-            quads[0] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
-                aabb.LowerBound,
-                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height / 2)));
-            quads[1] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
-                aabb.LowerBound + new Point2i(aabb.Width / 2, 0),
-                aabb.LowerBound + new Point2i(aabb.Width, aabb.Height / 2)));
-            quads[2] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
-                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height / 2),
-                aabb.LowerBound + new Point2i(aabb.Width, aabb.Height)));
-            quads[3] = new RegionQuadtree<T>(resolution, depth + 1, value, this, new AABB2i(
-                aabb.LowerBound + new Point2i(0, aabb.Height / 2),
-                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height)));
-
+            var oldValue = value;
             if (this.value != null)
             {
                 propagateEvent(EventType.Removing);
 
                 value = null;
             }
+
+            quads = new RegionQuadtree<T>[4];
+            quads[0] = new RegionQuadtree<T>(resolution, depth + 1, oldValue, this, new AABB2i(
+                aabb.LowerBound,
+                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height / 2)));
+            quads[1] = new RegionQuadtree<T>(resolution, depth + 1, oldValue, this, new AABB2i(
+                aabb.LowerBound + new Point2i(aabb.Width / 2, 0),
+                aabb.LowerBound + new Point2i(aabb.Width, aabb.Height / 2)));
+            quads[2] = new RegionQuadtree<T>(resolution, depth + 1, oldValue, this, new AABB2i(
+                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height / 2),
+                aabb.LowerBound + new Point2i(aabb.Width, aabb.Height)));
+            quads[3] = new RegionQuadtree<T>(resolution, depth + 1, oldValue, this, new AABB2i(
+                aabb.LowerBound + new Point2i(0, aabb.Height / 2),
+                aabb.LowerBound + new Point2i(aabb.Width / 2, aabb.Height)));
         }
 
         private bool unsubdivide()
@@ -746,6 +847,140 @@ namespace Quadtree
             }
 
             return false;
+        }
+
+        private bool isPointOutside(Point2i point)
+        {
+            return !aabb.Contains(point);
+        }
+
+        public RegionQuadtree<T> ExpandFromCenter()
+        {
+            if (Type != QuadType.Grey)
+            {
+                subdivide();
+            }
+
+            Action<RegionQuadtree<T>, Action<RegionQuadtree<T>>> doForEach = null;
+            doForEach = (qt, f) =>
+            {
+                f(qt);
+
+                if (qt.Type == QuadType.Grey)
+                {
+                    foreach (var dir in QDO.Quadrants)
+                    {
+                        doForEach(qt[dir], f);
+                    }
+                }
+            };
+
+            doForEach(this, (qt) =>
+            {
+                if (qt.Type == QuadType.Black)
+                {
+                    qt.propagateEvent(EventType.Removing);
+                }
+            });
+
+            var newRoot = new RegionQuadtree<T>(resolution + 1);
+            newRoot.AutoExpand = AutoExpand;
+            newRoot.subdivide();
+            foreach (var child in newRoot.quads)
+            {
+                child.subdivide();
+            }
+
+            var offset = new Point2i(newRoot.aabb.Width / 4, newRoot.aabb.Height / 4);
+
+            var offsets = new Dictionary<QuadDirection, Point2i>
+            {
+                { QuadDirection.NorthWest, new Point2i(quads[0].aabb.Width / 2, quads[0].aabb.Height / 2) },
+                { QuadDirection.SouthEast, new Point2i(quads[0].aabb.Width / 2, quads[0].aabb.Height / 2) },
+                { QuadDirection.NorthEast, new Point2i(quads[0].aabb.Width / 2, quads[0].aabb.Height / 2) },
+                { QuadDirection.SouthWest, new Point2i(quads[0].aabb.Width / 2, quads[0].aabb.Height / 2) },
+            };
+
+            // Set children
+
+            Action<RegionQuadtree<T>, RegionQuadtree<T>> expandProcessor = null;
+            expandProcessor = (qt, parent) =>
+            {
+                // Do this
+                qt.parent = parent;
+                qt.depth = qt.parent.depth + 1;
+                qt.resolution = qt.parent.resolution;
+
+                // Do children
+                if (qt.Type == QuadType.Grey)
+                {
+                    foreach (var dir in QDO.Quadrants)
+                    {
+                        switch (dir)
+                        {
+                            case QuadDirection.NorthWest:
+                                qt[dir].aabb.LowerBound = qt.aabb.LowerBound;
+                                qt[dir].aabb.UpperBound = qt.aabb.LowerBound + new Point2i(qt.aabb.Width / 2, qt.aabb.Height / 2);
+                                break;
+                            case QuadDirection.NorthEast:
+                                qt[dir].aabb.LowerBound = qt.aabb.LowerBound + new Point2i(qt.aabb.Width / 2, 0);
+                                qt[dir].aabb.UpperBound = qt.aabb.LowerBound + new Point2i(qt.aabb.Width, qt.aabb.Height / 2);
+                                break;
+                            case QuadDirection.SouthEast:
+                                qt[dir].aabb.LowerBound = qt.aabb.LowerBound + new Point2i(qt.aabb.Width / 2, qt.aabb.Height / 2);
+                                qt[dir].aabb.UpperBound = qt.aabb.LowerBound + new Point2i(qt.aabb.Width, qt.aabb.Height);
+                                break;
+                            case QuadDirection.SouthWest:
+                                qt[dir].aabb.LowerBound = qt.aabb.LowerBound + new Point2i(0, qt.aabb.Height / 2);
+                                qt[dir].aabb.UpperBound = qt.aabb.LowerBound + new Point2i(qt.aabb.Width / 2, qt.aabb.Height);
+                                break;
+                            default:
+                                throw new ArgumentException("Invalid direction");
+                        }
+
+                        expandProcessor(qt[dir], qt);
+                    }
+                }
+            };
+
+            foreach (var quadDirection in QDO.Quadrants)
+            {
+                var oldQuad = newRoot[quadDirection][QDO.OpSide(quadDirection)];
+
+                newRoot[quadDirection][QDO.OpSide(quadDirection)] = this[quadDirection];
+
+                var newQuad = newRoot[quadDirection][QDO.OpSide(quadDirection)];
+
+                newQuad.aabb = oldQuad.aabb;
+                expandProcessor(newQuad, oldQuad.parent);
+            }
+
+            // Call the event
+            if (OnExpand != null)
+            {
+                OnExpand(this, new QuadExpandEventArgs<T>(newRoot, offset));
+            }
+
+            // Move events
+            // TODO: Test this works properly
+            newRoot.OnQuadAdded = OnQuadAdded;
+            OnQuadAdded = null;
+            newRoot.OnQuadRemoving = OnQuadRemoving;
+            OnQuadRemoving = null;
+            newRoot.OnQuadChanged = OnQuadChanged;
+            OnQuadChanged = null;
+
+            doForEach(newRoot, (qt) =>
+            {
+                if (qt.Type == QuadType.Black)
+                {
+                    qt.propagateEvent(EventType.Added);
+                }
+            });
+
+            newRoot.OnExpand = OnExpand;
+
+            return newRoot;
         }
 
         public List<List<RegionQuadtree<T>>> FindConnectedComponents()
