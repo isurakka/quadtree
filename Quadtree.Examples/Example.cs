@@ -6,14 +6,19 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 using OpenTK;
+using OpenTK.Graphics;
+using OpenTK.Graphics.OpenGL;
 
 namespace Quadtree.Examples
 {
-	class Example
+	class Example : GameWindow
 	{
 		static void Main(string[] args)
 		{
-			new Example().Run();
+			using (Example example = new Example())
+			{
+				example.Run(60d, 60d);
+			}
 		}
 
 		//static Font fontNormal = new Font("assets/DejaVuSans.ttf");
@@ -34,6 +39,7 @@ namespace Quadtree.Examples
 		Vector2 position;
 
 		public Example()
+			: base(800, 600)
 		{
 
 			//var view = rw.GetView();
@@ -52,6 +58,13 @@ namespace Quadtree.Examples
 
 			lastRegions = quadtree.FindConnectedComponents();
 			lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
+		}
+
+		protected override void OnRenderFrame(FrameEventArgs e)
+		{
+			GL.Clear(ClearBufferMask.ColorBufferBit);
+
+			this.SwapBuffers();
 		}
 
 		public void Run()
@@ -196,8 +209,7 @@ namespace Quadtree.Examples
 
 		private Vector2 getGUIPos(float x, float y)
 		{
-			throw new NotImplementedException();
-			//return new Vector2(rw.Size.X * x, rw.Size.Y * y);
+			return new Vector2();
 		}
 	}
 }
