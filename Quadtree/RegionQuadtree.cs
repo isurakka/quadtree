@@ -21,6 +21,14 @@ namespace Quadtree
 
         private RegionQuadtree<T> parent;
 
+        public int MaxSize
+        {
+            get
+            {
+                return (int)Math.Pow(2, resolution);
+            }
+        }
+
         private AABB2i aabb;
         public AABB2i AABB
         {
