@@ -26,10 +26,11 @@ namespace Quadtree.Examples
 in vec2 position;
 in vec3 color;
 out vec3 Color;
+uniform mat4 projection;
 
 void main() {
 	Color = color;
-	gl_Position = vec4(position, 0.0, 1.0);
+	gl_Position = projection * vec4(position, 0.0, 1.0);
 }";
 		const string fragmentSource =
 @"#version 150 core
@@ -41,6 +42,10 @@ void main() {
 
 		//static Font fontNormal = new Font("assets/DejaVuSans.ttf");
 		//static Font fontBold = new Font("assets/DejaVuSans-Bold.ttf");
+
+        const int screenWidth = 800;
+        const int screenHeight = 600;
+        Matrix4 projection;
 
 		RegionQuadtree<Color> quadtree;
 		int qtResolution = 6;
@@ -56,21 +61,30 @@ void main() {
 		List<uint> freeOutlineIndexes = new List<uint>();
 		Vector2 position;
 
-		float[] posResColorData = new float[] {
-			0f, 0f, 0f, 0f
+		float[] qtVertices = new float[] {
+			0f, 0f,     1f, 0f, 0f,
+            100f, 0f,   1f, 0f, 0f,
+            100f, 100f, 1f, 0f, 0f,
+            0f, 100f,   1f, 0f, 0f,
 		};
 
+        int[] qtElements = new int[] {
+            0, 1, 2,
+            2, 3, 0
+        };
+
 		public Example()
-			: base(800, 600)
+            : base(screenWidth, screenHeight)
 		{
 			//var view = rw.GetView();
 			//view.Move(new Vector2f(512f, 256f));
 			//rw.SetView(view);
 
 			initQuadtree();
+            initRendering();
 			initInput();
 
-			posResColorData = new float[quadtree.AABB.Width * quadtree.AABB.Height];
+			//posResColorData = new float[quadtree.AABB.Width * quadtree.AABB.Height];
 
 			position = getGUIPos(0.3f, 0.5f) - new Vector2(quadtree.AABB.Width / 2f, quadtree.AABB.Height / 2f) * qtMultiplier;
 
@@ -83,16 +97,58 @@ void main() {
 			lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
 		}
 
+        private void initRendering()
+        {
+            var vao = GL.GenVertexArray();
+            GL.BindVertexArray(vao);
+
+            var vbo = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, vbo);
+            GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(qtVertices.Length * sizeof(float)), qtVertices, BufferUsageHint.DynamicDraw);
+
+            var ebo = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(qtElements.Length * sizeof(float)), qtElements, BufferUsageHint.DynamicDraw);
+
+            var vertexShader = GL.CreateShader(ShaderType.VertexShader);
+            GL.ShaderSource(vertexShader, vertexSource);
+            GL.CompileShader(vertexShader);
+
+            var fragmentShader = GL.CreateShader(ShaderType.FragmentShader);
+            GL.ShaderSource(fragmentShader, fragmentSource);
+            GL.CompileShader(fragmentShader);
+
+            var shaderProgram = GL.CreateProgram();
+            GL.AttachShader(shaderProgram, vertexShader);
+            GL.AttachShader(shaderProgram, fragmentShader);
+            GL.BindFragDataLocation(shaderProgram, 0, "outColor"); // Not needed if only 1 output
+            GL.LinkProgram(shaderProgram);
+            GL.UseProgram(shaderProgram);
+
+            var posAttrib = GL.GetAttribLocation(shaderProgram, "position");
+            GL.EnableVertexAttribArray(posAttrib);
+            GL.VertexAttribPointer(posAttrib, 2, VertexAttribPointerType.Float, false, 5 * sizeof(float), 0);
+
+            var colorAttrib = GL.GetAttribLocation(shaderProgram, "color");
+            GL.EnableVertexAttribArray(colorAttrib);
+            GL.VertexAttribPointer(colorAttrib, 3, VertexAttribPointerType.Float, false, 5 * sizeof(float), 2 * sizeof(float));
+
+
+
+            var uniProjection = GL.GetUniformLocation(shaderProgram, "projection");
+            projection = Matrix4.CreateOrthographic(screenWidth, screenHeight, 0f, 0f);
+            //projection = Matrix4.CreateOrthographicOffCenter(0f, screenWidth, screenHeight, 0f, 0f, 0f);
+            GL.UniformMatrix4(uniProjection, true, ref projection);
+            GL.Viewport(0, 0, screenWidth, screenHeight);
+        }
+
 		protected override void OnRenderFrame(FrameEventArgs e)
 		{
 			GL.Clear(ClearBufferMask.ColorBufferBit);
 
-			this.SwapBuffers();
-		}
+            GL.DrawElements(BeginMode.Triangles, 6, DrawElementsType.UnsignedInt, 0);
 
-		public void Run()
-		{
-			var sw = new Stopwatch();
+			this.SwapBuffers();
 		}
 
 		struct QuadData
