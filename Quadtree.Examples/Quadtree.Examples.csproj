@@ -99,7 +99,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BodyRenderer.cs" />
+    <Compile Include="ConvertManager.cs" />
     <Compile Include="Example.cs" />
+    <Compile Include="MathExtender.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

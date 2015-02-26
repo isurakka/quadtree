@@ -4,8 +4,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using FarseerPhysics;
+using FarseerPhysics.Common;
+using FarseerPhysics.Dynamics;
+using FarseerPhysics.Factories;
+using Microsoft.Xna.Framework;
 
 namespace Quadtree.Examples
 {
@@ -21,7 +28,7 @@ namespace Quadtree.Examples
 
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
-        int qtResolution = 6;
+        int qtResolution = 2;
         const float qtMultiplier = 4f;
         Dictionary<AABB2i, QuadData> rects;
 
@@ -40,6 +47,12 @@ namespace Quadtree.Examples
         List<uint> freeOutlineIndexes = new List<uint>();
         Vector2f position;
 
+        private World world;
+        private Body body;
+        
+        private float step = 1f/60f;
+        private float acc = 0f;
+
         public Example()
         {
             rw = new RenderWindow(new VideoMode(1600u, 900u), "Quadtree example", Styles.Close, new ContextSettings() { AntialiasingLevel = 8 });
@@ -49,15 +62,15 @@ namespace Quadtree.Examples
             //view.Move(new Vector2f(512f, 256f));
             //rw.SetView(view);
 
+            world = new World(new Vector2());
+            body = new Body(world, new Vector2());
+
             initQuadtree();
             initInput();
 
             position = getGUIPos(0.3f, 0.5f) - new Vector2f(quadtree.AABB.Width / 2f, quadtree.AABB.Height / 2f) * qtMultiplier;
 
-            for (int i = 0; i < 1; i++)
-            {
-               // quadtree.ExpandFromCenter();
-            }
+            body.Position = position.DisplayToSim().ToXNA();
 
             lastRegions = quadtree.FindConnectedComponents();
             lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
@@ -78,7 +91,8 @@ namespace Quadtree.Examples
                 bool anyInput = Mouse.IsButtonPressed(Mouse.Button.Left) || Mouse.IsButtonPressed(Mouse.Button.Right);
                 if (anyInput)
                 {
-                    var worldMouse = rw.MapPixelToCoords(Mouse.GetPosition(rw)) - position;
+
+                    var worldMouse = body.GetLocalPoint(rw.MapPixelToCoords(Mouse.GetPosition(rw)).DisplayToSim().ToXNA()).ToSFML().SimToDisplay();
                     var sfmlPos = worldMouse * (1f / qtMultiplier);
                     var aabbMin = (worldMouse - new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
                     var aabbMax = (worldMouse + new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
@@ -114,12 +128,22 @@ namespace Quadtree.Examples
                         Debug.WriteLine(sb.ToString());
                     }
                 }
+
+                acc += dt;
+                while (acc >= step)
+                {
+                    world.Step(step);
+                    acc -= step;
+                }
                 
                 rw.Clear();
 
                 // Draw
 
                 // Draw quadtree
+                BodyRenderer.DrawBody(body, rw, null, null, null, Color.Red);
+
+                /*
                 var states = RenderStates.Default;
                 states.Transform.Translate(position);
 
@@ -145,6 +169,7 @@ namespace Quadtree.Examples
                     text.Color = Color.Black;
                     rw.Draw(text, states);
                 }
+                */
 
                 // For jonah
                 var outerRect = new RectangleShape(new Vector2f(quadtree.AABB.Width * qtMultiplier, quadtree.AABB.Height * qtMultiplier));
@@ -176,6 +201,7 @@ namespace Quadtree.Examples
         {
             public uint quadIndex;
             public uint outlineIndex;
+            public Fixture fix;
         }
 
         private void initQuadtree()
@@ -224,6 +250,10 @@ namespace Quadtree.Examples
 
                 for (uint i = 0; i < 4; i++)
                 {
+                    var verts = new Vertices(rectPoints.Select(v => ConvertUnits.ToSimUnits(new Vector2(v.X, v.Y))));
+                    var fix = FixtureFactory.AttachPolygon(verts, 1f, body);
+                    quadData.fix = fix;
+
                     quadVertexArray[quadData.quadIndex + i] = new Vertex(rectPoints[(int)i], quadColor);
                 }
 
@@ -256,6 +286,9 @@ namespace Quadtree.Examples
             Action<object, RegionQuadtree<Color>.QuadEventArgs<Color>> onQuadRemoving = (s, a) =>
             {
                 var quadData = rects[a.AABB];
+
+                // fix
+                body.DestroyFixture(quadData.fix);
                 
                 // quad
                 freeQuadIndexes.Add(quadData.quadIndex);
@@ -302,7 +335,14 @@ namespace Quadtree.Examples
 
                 qtResolution++;
 
-                position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
+                Debug.WriteLine("Number of fixtures that should not be there: " + body.FixtureList.Count());
+                //while (body.FixtureList.Count > 0)
+                //{
+                //    body.DestroyFixture(body.FixtureList[body.FixtureList.Count() - 1]);
+                //}
+
+                //position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
+                //body.Position -= new Vector2f(a.Offset.X, a.Offset.Y).DisplayToSim().ToXNA() * qtMultiplier;
 
                 resolutionText.DisplayedString = "Resolution " + quadtree.AABB.Width * qtMultiplier + "x" + quadtree.AABB.Height * qtMultiplier;
             };
