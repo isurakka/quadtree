@@ -1,3 +1,6 @@
 [submodule "Quadtree.Examples/SFML.Net"]
 	path = Quadtree.Examples/SFML.Net
 	url = git@github.com:LaurentGomila/SFML.Net.git
+[submodule "Quadtree.Examples/FarseerPhysicsEngine"]
+	path = Quadtree.Examples/FarseerPhysicsEngine
+	url = git@github.com:isurakka/FarseerPhysicsEngine.git
