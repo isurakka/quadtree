@@ -168,7 +168,7 @@ namespace Quadtree.Examples
         public void ModifyFixture(Fixture fix, Color color)
         {
             var index = indices[fix];
-            for (int i = index.X; i < index.Y; i++)
+            for (int i = index.X; i < index.X + index.Y; i++)
             {
                 va[(uint)i] = new Vertex(va[(uint)i].Position, color);
             }
@@ -185,9 +185,9 @@ namespace Quadtree.Examples
         public void RemoveFixture(Fixture fix)
         {
             var index = indices[fix];
-            for (int i = index.X; i < index.Y; i++)
+            for (int i = index.X; i < index.X + index.Y; i++)
             {
-                va[(uint)i] = new Vertex(va[(uint)i].Position, Color.Magenta);
+                va[(uint)i] = new Vertex(va[(uint)i].Position, Color.Transparent);
             }
             indices.Remove(fix);
             freeIndices.Add(index.X, index.Y);

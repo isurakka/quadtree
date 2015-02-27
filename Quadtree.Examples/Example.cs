@@ -29,9 +29,10 @@ namespace Quadtree.Examples
 
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
-        int qtResolution = 7;
+        int qtResolution = 8;
         const float qtMultiplier = 4f;
         Dictionary<AABB2i, QuadData> rects;
+        private Dictionary<Fixture, QuadData> qtData; 
 
         int selectionRadius = 40;
         int selection = 0;
@@ -52,7 +53,7 @@ namespace Quadtree.Examples
         private Body body;
         private BatchedBodyRenderer bodyRenderer;
         
-        private float step = 1f/60f;
+        private float step = 1f / 240f;
         private float acc = 0f;
 
         public Example()
@@ -66,6 +67,7 @@ namespace Quadtree.Examples
 
             world = new World(new Vector2());
             body = new Body(world, new Vector2());
+            body.BodyType = BodyType.Dynamic;
             bodyRenderer = new BatchedBodyRenderer();
 
             initQuadtree();
@@ -74,6 +76,7 @@ namespace Quadtree.Examples
             position = getGUIPos(0.3f, 0.5f) - new Vector2f(quadtree.AABB.Width / 2f, quadtree.AABB.Height / 2f) * qtMultiplier;
 
             body.Position = position.DisplayToSim().ToXNA();
+            body.ApplyTorque(1000000f);
 
             lastRegions = quadtree.FindConnectedComponents();
             lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
@@ -120,6 +123,7 @@ namespace Quadtree.Examples
                         lastRegions = quadtree.FindConnectedComponents();
                         lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v2.Count.CompareTo(v1.Count)));
 
+#if DEBUG
                         StringBuilder sb = new StringBuilder();
                         sb.Append("{ ");
                         for (int i = 0; i < lastRegions.Count; i++)
@@ -129,6 +133,7 @@ namespace Quadtree.Examples
                         }
                         sb.Append(" }");
                         Debug.WriteLine(sb.ToString());
+#endif
                     }
                 }
 
@@ -209,8 +214,6 @@ namespace Quadtree.Examples
 
         struct QuadData
         {
-            public uint quadIndex;
-            public uint outlineIndex;
             public Fixture fix;
         }
 
@@ -235,61 +238,13 @@ namespace Quadtree.Examples
                     new Vector2f(aabb.LowerBound.X, aabb.LowerBound.Y + aabb.Height) * qtMultiplier,
                 };
 
-                const float outlineIntend = 1f;
-                var outlinePoints = new List<Vector2f>
-                {
-                    rectPoints[0] + new Vector2f(outlineIntend, outlineIntend),
-                    rectPoints[1] + new Vector2f(-outlineIntend, outlineIntend),
-                    rectPoints[2] + new Vector2f(-outlineIntend, -outlineIntend),
-                    rectPoints[3] + new Vector2f(outlineIntend, -outlineIntend),
-                };
-
                 var quadData = new QuadData();
-
-                // quad
-                if (freeQuadIndexes.Count > 0)
-                {
-                    quadData.quadIndex = freeQuadIndexes[freeQuadIndexes.Count - 1];
-                    freeQuadIndexes.RemoveAt(freeQuadIndexes.Count - 1);
-                }
-                else
-                {
-                    quadData.quadIndex = quadVertexArray.VertexCount;
-                    quadVertexArray.Resize(quadVertexArray.VertexCount + 4);
-                }
-
-                for (uint i = 0; i < 4; i++)
-                {
-                    quadVertexArray[quadData.quadIndex + i] = new Vertex(rectPoints[(int)i], quadColor);
-                }
 
                 var verts = new Vertices(rectPoints.Select(v => ConvertUnits.ToSimUnits(new Vector2(v.X, v.Y))));
                 var fix = FixtureFactory.AttachPolygon(verts, 1f, body);
                 quadData.fix = fix;
 
                 bodyRenderer.AddFixture(fix, quadColor);
-
-
-                // outline
-                if (freeOutlineIndexes.Count > 0)
-                {
-                    quadData.outlineIndex = freeOutlineIndexes[freeOutlineIndexes.Count - 1];
-                    freeOutlineIndexes.RemoveAt(freeOutlineIndexes.Count - 1);
-                }
-                else
-                {
-                    quadData.outlineIndex = outlineVertexArray.VertexCount;
-                    outlineVertexArray.Resize(outlineVertexArray.VertexCount + 8);
-                }
-
-                outlineVertexArray[quadData.outlineIndex] = new Vertex(outlinePoints[0] + new Vector2f(-outlineIntend, 0f), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 1] = new Vertex(outlinePoints[1] + new Vector2f(-outlineIntend, 0f), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 2] = new Vertex(outlinePoints[1] + new Vector2f(0f, -outlineIntend), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 3] = new Vertex(outlinePoints[2] + new Vector2f(0f, -outlineIntend), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 4] = new Vertex(outlinePoints[2] + new Vector2f(outlineIntend, 0f), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 5] = new Vertex(outlinePoints[3] + new Vector2f(outlineIntend, 0f), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 6] = new Vertex(outlinePoints[3] + new Vector2f(0f, outlineIntend), outlineColor);
-                outlineVertexArray[quadData.outlineIndex + 7] = new Vertex(outlinePoints[0] + new Vector2f(0f, outlineIntend), outlineColor);
 
                 rects.Add(aabb, quadData);
             };
@@ -303,21 +258,6 @@ namespace Quadtree.Examples
                 //body.FixtureList.Remove(quadData.fix);
                 bodyRenderer.RemoveFixture(quadData.fix);
                 body.DestroyFixture(quadData.fix);
-                
-                
-                // quad
-                freeQuadIndexes.Add(quadData.quadIndex);
-                for (uint i = 0; i < 4; i++)
-                {
-                    quadVertexArray[quadData.quadIndex + i] = new Vertex(new Vector2f(), Color.Transparent);
-                }
-
-                // outline
-                freeOutlineIndexes.Add(quadData.outlineIndex);
-                for (uint i = 0; i < 8; i++)
-                {
-                    outlineVertexArray[quadData.outlineIndex + i] = new Vertex(new Vector2f(), Color.Transparent);
-                }
 
                 rects.Remove(a.AABB);
             };
@@ -328,16 +268,6 @@ namespace Quadtree.Examples
                 var quadData = rects[a.AABB];
                 var quadColor = a.Value;
                 var outlineColor = new Color(0, 0, 0, 100);
-
-                for (uint i = 0; i < 4; i++)
-                {
-                    quadVertexArray[quadData.quadIndex + i] = new Vertex(quadVertexArray[quadData.quadIndex + i].Position, quadColor);
-                }
-
-                for (uint i = 0; i < 8; i++)
-                {
-                    outlineVertexArray[quadData.outlineIndex + i] = new Vertex(outlineVertexArray[quadData.outlineIndex + i].Position, outlineColor);
-                }
 
                 bodyRenderer.ModifyFixture(quadData.fix, quadColor);
             };
@@ -359,7 +289,7 @@ namespace Quadtree.Examples
                 //}
 
                 position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
-                body.Position -= new Vector2f(a.Offset.X, a.Offset.Y).DisplayToSim().ToXNA() * qtMultiplier;
+                body.Position -= new Vector2f(a.Offset.X, a.Offset.Y).RotateRadians(body.Rotation).DisplayToSim().ToXNA() * qtMultiplier;
 
                 resolutionText.DisplayedString = "Resolution " + quadtree.AABB.Width * qtMultiplier + "x" + quadtree.AABB.Height * qtMultiplier;
             };
