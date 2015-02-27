@@ -339,9 +339,7 @@ namespace Quadtree.Examples
                     outlineVertexArray[quadData.outlineIndex + i] = new Vertex(outlineVertexArray[quadData.outlineIndex + i].Position, outlineColor);
                 }
 
-                //bodyRenderer.ModifyFixture(quadData.fix, quadColor);
-                bodyRenderer.RemoveFixture(quadData.fix);
-                bodyRenderer.AddFixture(quadData.fix, quadColor);
+                bodyRenderer.ModifyFixture(quadData.fix, quadColor);
             };
             quadtree.OnQuadChanged += new EventHandler<RegionQuadtree<Color>.QuadChangedEventArgs<Color>>(onQuadChanged);
 

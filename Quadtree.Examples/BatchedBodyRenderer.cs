@@ -187,7 +187,7 @@ namespace Quadtree.Examples
             var index = indices[fix];
             for (int i = index.X; i < index.Y; i++)
             {
-                va[(uint)i] = new Vertex(new Vector2f(), Color.Transparent);
+                va[(uint)i] = new Vertex(va[(uint)i].Position, Color.Magenta);
             }
             indices.Remove(fix);
             freeIndices.Add(index.X, index.Y);
