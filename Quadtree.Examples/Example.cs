@@ -29,7 +29,7 @@ namespace Quadtree.Examples
 
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
-        int qtResolution = 8;
+        int qtResolution = 7;
         const float qtMultiplier = 4f;
         Dictionary<AABB2i, QuadData> rects;
         private Dictionary<Fixture, QuadData> qtData; 
@@ -76,7 +76,7 @@ namespace Quadtree.Examples
             position = getGUIPos(0.3f, 0.5f) - new Vector2f(quadtree.AABB.Width / 2f, quadtree.AABB.Height / 2f) * qtMultiplier;
 
             body.Position = position.DisplayToSim().ToXNA();
-            body.ApplyTorque(1000000f);
+            body.ApplyTorque(100000f);
 
             lastRegions = quadtree.FindConnectedComponents();
             lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
