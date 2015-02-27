@@ -99,6 +99,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BatchedBodyRenderer.cs" />
     <Compile Include="BodyRenderer.cs" />
     <Compile Include="ConvertManager.cs" />
     <Compile Include="Example.cs" />

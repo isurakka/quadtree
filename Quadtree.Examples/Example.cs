@@ -13,6 +13,7 @@ using FarseerPhysics.Common;
 using FarseerPhysics.Dynamics;
 using FarseerPhysics.Factories;
 using Microsoft.Xna.Framework;
+using Transform = SFML.Graphics.Transform;
 
 namespace Quadtree.Examples
 {
@@ -28,7 +29,7 @@ namespace Quadtree.Examples
 
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
-        int qtResolution = 2;
+        int qtResolution = 7;
         const float qtMultiplier = 4f;
         Dictionary<AABB2i, QuadData> rects;
 
@@ -49,6 +50,7 @@ namespace Quadtree.Examples
 
         private World world;
         private Body body;
+        private BatchedBodyRenderer bodyRenderer;
         
         private float step = 1f/60f;
         private float acc = 0f;
@@ -64,6 +66,7 @@ namespace Quadtree.Examples
 
             world = new World(new Vector2());
             body = new Body(world, new Vector2());
+            bodyRenderer = new BatchedBodyRenderer();
 
             initQuadtree();
             initInput();
@@ -141,7 +144,14 @@ namespace Quadtree.Examples
                 // Draw
 
                 // Draw quadtree
-                BodyRenderer.DrawBody(body, rw, null, null, null, Color.Red);
+                //BodyRenderer.DrawBody(body, rw, null, null, null, Color.Red);
+
+                var rs = RenderStates.Default;
+                var tr = rs.Transform;
+                tr.Translate(body.Position.ToSFML().SimToDisplay());
+                tr.Rotate(MathExtender.RadianToDegree(body.Rotation));
+                rs.Transform = tr;
+                bodyRenderer.Draw(rw, rs);
 
                 /*
                 var states = RenderStates.Default;
@@ -257,6 +267,8 @@ namespace Quadtree.Examples
                 var fix = FixtureFactory.AttachPolygon(verts, 1f, body);
                 quadData.fix = fix;
 
+                bodyRenderer.AddFixture(fix, quadColor);
+
 
                 // outline
                 if (freeOutlineIndexes.Count > 0)
@@ -289,6 +301,7 @@ namespace Quadtree.Examples
 
                 // fix
                 //body.FixtureList.Remove(quadData.fix);
+                bodyRenderer.RemoveFixture(quadData.fix);
                 body.DestroyFixture(quadData.fix);
                 
                 
@@ -325,6 +338,10 @@ namespace Quadtree.Examples
                 {
                     outlineVertexArray[quadData.outlineIndex + i] = new Vertex(outlineVertexArray[quadData.outlineIndex + i].Position, outlineColor);
                 }
+
+                //bodyRenderer.ModifyFixture(quadData.fix, quadColor);
+                bodyRenderer.RemoveFixture(quadData.fix);
+                bodyRenderer.AddFixture(quadData.fix, quadColor);
             };
             quadtree.OnQuadChanged += new EventHandler<RegionQuadtree<Color>.QuadChangedEventArgs<Color>>(onQuadChanged);
 
