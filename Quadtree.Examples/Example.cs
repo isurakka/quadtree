@@ -30,7 +30,7 @@ namespace Quadtree.Examples
         RenderWindow rw;
         RegionQuadtree<Color> quadtree;
         int qtResolution = 7;
-        const float qtMultiplier = 4f;
+        const float qtMultiplier = 8f;
         Dictionary<AABB2i, QuadData> rects;
         private Dictionary<Fixture, QuadData> qtData; 
 
@@ -53,7 +53,7 @@ namespace Quadtree.Examples
         private Body body;
         private BatchedBodyRenderer bodyRenderer;
         
-        private float step = 1f / 240f;
+        private float step = 1f / 120f;
         private float acc = 0f;
 
         public Example()
