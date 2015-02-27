@@ -91,8 +91,8 @@ namespace Quadtree.Examples
                 bool anyInput = Mouse.IsButtonPressed(Mouse.Button.Left) || Mouse.IsButtonPressed(Mouse.Button.Right);
                 if (anyInput)
                 {
-
-                    var worldMouse = body.GetLocalPoint(rw.MapPixelToCoords(Mouse.GetPosition(rw)).DisplayToSim().ToXNA()).ToSFML().SimToDisplay();
+                    var worldMouseDis = rw.MapPixelToCoords(Mouse.GetPosition(rw));
+                    var worldMouse = body.GetLocalPoint(worldMouseDis.DisplayToSim().ToXNA()).ToSFML().SimToDisplay();
                     var sfmlPos = worldMouse * (1f / qtMultiplier);
                     var aabbMin = (worldMouse - new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
                     var aabbMax = (worldMouse + new Vector2f(selectionRadius, selectionRadius)) * (1f / qtMultiplier);
@@ -250,12 +250,12 @@ namespace Quadtree.Examples
 
                 for (uint i = 0; i < 4; i++)
                 {
-                    var verts = new Vertices(rectPoints.Select(v => ConvertUnits.ToSimUnits(new Vector2(v.X, v.Y))));
-                    var fix = FixtureFactory.AttachPolygon(verts, 1f, body);
-                    quadData.fix = fix;
-
                     quadVertexArray[quadData.quadIndex + i] = new Vertex(rectPoints[(int)i], quadColor);
                 }
+
+                var verts = new Vertices(rectPoints.Select(v => ConvertUnits.ToSimUnits(new Vector2(v.X, v.Y))));
+                var fix = FixtureFactory.AttachPolygon(verts, 1f, body);
+                quadData.fix = fix;
 
 
                 // outline
@@ -288,7 +288,9 @@ namespace Quadtree.Examples
                 var quadData = rects[a.AABB];
 
                 // fix
+                //body.FixtureList.Remove(quadData.fix);
                 body.DestroyFixture(quadData.fix);
+                
                 
                 // quad
                 freeQuadIndexes.Add(quadData.quadIndex);
@@ -341,8 +343,8 @@ namespace Quadtree.Examples
                 //    body.DestroyFixture(body.FixtureList[body.FixtureList.Count() - 1]);
                 //}
 
-                //position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
-                //body.Position -= new Vector2f(a.Offset.X, a.Offset.Y).DisplayToSim().ToXNA() * qtMultiplier;
+                position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
+                body.Position -= new Vector2f(a.Offset.X, a.Offset.Y).DisplayToSim().ToXNA() * qtMultiplier;
 
                 resolutionText.DisplayedString = "Resolution " + quadtree.AABB.Width * qtMultiplier + "x" + quadtree.AABB.Height * qtMultiplier;
             };
