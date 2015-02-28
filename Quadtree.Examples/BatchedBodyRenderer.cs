@@ -21,7 +21,7 @@ namespace Quadtree.Examples
         private VertexArray va;
 
         // fix, (start, end)
-        private Dictionary<Fixture, Vector2i> indices;
+        private Dictionary<long, Vector2i> indices;
 
         // start, size
         private Dictionary<int, int> freeIndices; 
@@ -29,7 +29,7 @@ namespace Quadtree.Examples
         public BatchedBodyRenderer()
         {
             va = new VertexArray(PrimitiveType.Triangles);
-            indices = new Dictionary<Fixture, Vector2i>();
+            indices = new Dictionary<long, Vector2i>();
             freeIndices = new Dictionary<int, int>();
         }
 
@@ -63,55 +63,7 @@ namespace Quadtree.Examples
                     {
                         var poly = (PolygonShape)fix.Shape;
 
-                        int startIndex;
-                        var vertCount = poly.Vertices.Count;
-                        if (vertCount < 3)
-                        {
-                            break;
-                        }
-
-                        var neededVerts = 3 + 3 * (vertCount - 3);
-
-                        var candidates = freeIndices.Where(pair => pair.Value >= neededVerts);
-                        if (candidates.Any())
-                        {
-                            var smallest = candidates.Aggregate((agg, next) => next.Value < agg.Value ? next : agg);
-                            startIndex = smallest.Key;
-                            freeIndices.Remove(smallest.Key);
-
-                            var newSize = smallest.Value - neededVerts;
-                            if (newSize > 0)
-                            {
-                                var newStart = smallest.Key + newSize;
-                                freeIndices.Add(newStart, newSize);
-                            }
-                        }
-                        else
-                        {
-                            startIndex = (int)va.VertexCount;
-                            va.Resize(va.VertexCount + (uint)neededVerts);
-                        }
-
-                        var center = poly.Vertices[0].ToSFML().SimToDisplay();
-
-                        var addIndex = 0;
-                        var added = 0;
-                        for (int i = 1; i < vertCount - 1; i++)
-                        {
-                            var p1 = poly.Vertices[i].ToSFML().SimToDisplay();
-                            var p2 = poly.Vertices[i + 1].ToSFML().SimToDisplay();
-
-                            va[(uint)(startIndex + addIndex)] = new Vertex(center, color);
-                            va[(uint)(startIndex + addIndex + 1)] = new Vertex(p1, color);
-                            va[(uint)(startIndex + addIndex + 2)] = new Vertex(p2, color);
-                            added += 3;
-
-                            addIndex += 3;
-                        }
-
-                        Debug.Assert(added == neededVerts);
-
-                        indices.Add(fix, new Vector2i(startIndex, neededVerts));
+                        AddVertices(poly.Vertices.Select(v => v.ToSFML().SimToDisplay()), color);
                     }
                     break;
                 case ShapeType.TypeCount:
@@ -121,6 +73,63 @@ namespace Quadtree.Examples
                     throw new NotImplementedException();
                     break;
             }
+        }
+
+        public void AddVertices(IEnumerable<Vector2f> eVerts, Color color)
+        {
+            int startIndex;
+            var vertices = eVerts as IList<Vector2f> ?? eVerts.ToList();
+
+            var vertCount = vertices.Count;
+            if (vertCount < 3)
+            {
+                return;
+            }
+
+            var neededVerts = 3 + 3 * (vertCount - 3);
+
+            var candidates = freeIndices.Where(pair => pair.Value >= neededVerts);
+            if (candidates.Any())
+            {
+                var smallest = candidates.Aggregate((agg, next) => next.Value < agg.Value ? next : agg);
+                startIndex = smallest.Key;
+                freeIndices.Remove(smallest.Key);
+
+                var newSize = smallest.Value - neededVerts;
+                if (newSize > 0)
+                {
+                    var newStart = smallest.Key + newSize;
+                    freeIndices.Add(newStart, newSize);
+                }
+            }
+            else
+            {
+                startIndex = (int)va.VertexCount;
+                va.Resize(va.VertexCount + (uint)neededVerts);
+            }
+
+            var hash = getHash(vertices);
+
+            var center = vertices[0];
+
+            var addIndex = 0;
+            var added = 0;
+            for (int i = 1; i < vertCount - 1; i++)
+            {
+                var p1 = vertices[i];
+                var p2 = vertices[i + 1];
+
+                va[(uint)(startIndex + addIndex)] = new Vertex(center, color);
+                va[(uint)(startIndex + addIndex + 1)] = new Vertex(p1, color);
+                va[(uint)(startIndex + addIndex + 2)] = new Vertex(p2, color);
+                added += 3;
+
+                addIndex += 3;
+            }
+
+            Debug.Assert(added == neededVerts);
+
+            indices.Add(hash, new Vector2i(startIndex, neededVerts));
         }
 
         public void ModifyBody(Body body, Color color)
@@ -133,7 +142,12 @@ namespace Quadtree.Examples
 
         public void ModifyFixture(Fixture fix, Color color)
         {
-            var index = indices[fix];
+            ModifyVertices(((PolygonShape)fix.Shape).Vertices.Select(v => v.ToSFML().SimToDisplay()), color);
+        }
+
+        public void ModifyVertices(IEnumerable<Vector2f> eVerts, Color color)
+        {
+            var index = indices[getHash(eVerts)];
             for (int i = index.X; i < index.X + index.Y; i++)
             {
                 va[(uint)i] = new Vertex(va[(uint)i].Position, color);
@@ -150,18 +164,39 @@ namespace Quadtree.Examples
 
         public void RemoveFixture(Fixture fix)
         {
-            var index = indices[fix];
+            RemoveVertices(((PolygonShape)fix.Shape).Vertices.Select(v => v.ToSFML().SimToDisplay()));
+        }
+
+        public void RemoveVertices(IEnumerable<Vector2f> eVerts)
+        {
+            var hash = getHash(eVerts);
+            var index = indices[hash];
             for (int i = index.X; i < index.X + index.Y; i++)
             {
                 va[(uint)i] = new Vertex(va[(uint)i].Position, Color.Transparent);
             }
-            indices.Remove(fix);
+            indices.Remove(hash);
             freeIndices.Add(index.X, index.Y);
         }
 
         public void Draw(RenderTarget rt, RenderStates rs)
         {
             rt.Draw(va, rs);
+        }
+
+        private long getHash(IEnumerable<Vector2f> eVerts)
+        {
+            unchecked
+            {
+                var hash = (long)2166136261L;
+                foreach (var point in eVerts)
+                {
+                
+                        hash = hash * 16777619L ^ (long)point.X.GetHashCode();
+                        hash = hash * 16777619L ^ (long)point.Y.GetHashCode();
+                }
+                return hash;
+            }
         }
     }
 }

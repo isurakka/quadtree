@@ -28,7 +28,8 @@ namespace Quadtree.Examples
         static Font fontBold = new Font("assets/DejaVuSans-Bold.ttf");
 
         RenderWindow rw;
-        RegionQuadtree<Color> quadtree;
+        RegionQuadtree<Color> renderQuadtree;
+        RegionQuadtree<Color> physicsQuadtree;
         int qtResolution = 7;
         const float qtMultiplier = 8f;
         Dictionary<AABB2i, QuadData> rects;
@@ -73,12 +74,12 @@ namespace Quadtree.Examples
             initQuadtree();
             initInput();
 
-            position = getGUIPos(0.3f, 0.5f) - new Vector2f(quadtree.AABB.Width / 2f, quadtree.AABB.Height / 2f) * qtMultiplier;
+            position = getGUIPos(0.3f, 0.5f) - new Vector2f(renderQuadtree.AABB.Width / 2f, renderQuadtree.AABB.Height / 2f) * qtMultiplier;
 
             body.Position = position.DisplayToSim().ToXNA();
             body.ApplyTorque(100000f);
 
-            lastRegions = quadtree.FindConnectedComponents();
+            lastRegions = renderQuadtree.FindConnectedComponents();
             lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
         }
 
@@ -109,18 +110,20 @@ namespace Quadtree.Examples
                     if (Mouse.IsButtonPressed(Mouse.Button.Left))
                     {
                         //quadtree.Set(qtPos, selections[selection].Item2);
-                        anyChanged |= quadtree.SetCircle(qtPos, (int)(selectionRadius / qtMultiplier), selections[selection].Item2);
+                        anyChanged |= physicsQuadtree.SetCircle(qtPos, (int)(selectionRadius / qtMultiplier), Color.Transparent);
+                        renderQuadtree.SetCircle(qtPos, (int)(selectionRadius / qtMultiplier), selections[selection].Item2);
                         //quadtree.SetAABB(qtAABB, selections[selection].Item2);
                     }
                     else if (Mouse.IsButtonPressed(Mouse.Button.Right))
                     {
                         //quadtree.Unset(qtPos);
-                        anyChanged |= quadtree.UnsetCircle(qtPos, (int)(selectionRadius / qtMultiplier));
+                        anyChanged |= physicsQuadtree.UnsetCircle(qtPos, (int)(selectionRadius / qtMultiplier));
+                        renderQuadtree.UnsetCircle(qtPos, (int)(selectionRadius / qtMultiplier));
                     }
 
                     if (anyChanged)
                     {
-                        lastRegions = quadtree.FindConnectedComponents();
+                        lastRegions = physicsQuadtree.FindConnectedComponents();
                         lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v2.Count.CompareTo(v1.Count)));
 
 #if DEBUG
@@ -187,7 +190,7 @@ namespace Quadtree.Examples
                 */
 
                 // For jonah
-                var outerRect = new RectangleShape(new Vector2f(quadtree.AABB.Width * qtMultiplier, quadtree.AABB.Height * qtMultiplier));
+                var outerRect = new RectangleShape(new Vector2f(renderQuadtree.AABB.Width * qtMultiplier, renderQuadtree.AABB.Height * qtMultiplier));
                 outerRect.Position = position;
                 outerRect.FillColor = Color.Transparent;
                 outerRect.OutlineColor = new Color(255, 255, 255, 40);
@@ -215,17 +218,26 @@ namespace Quadtree.Examples
         struct QuadData
         {
             public Fixture fix;
+            public IEnumerable<Vector2f> vertices;
         }
 
         private void initQuadtree()
         {
-            quadtree = new RegionQuadtree<Color>(qtResolution);
-            quadtree.AutoExpand = true;
+            renderQuadtree = new RegionQuadtree<Color>(qtResolution);
+            renderQuadtree.AutoExpand = true;
+
+            physicsQuadtree = new RegionQuadtree<Color>(qtResolution);
+            physicsQuadtree.AutoExpand = true;
 
             rects = new Dictionary<AABB2i, QuadData>();
 
             Action<object, RegionQuadtree<Color>.QuadEventArgs<Color>> onQuadAdded = (s, a) =>
             {
+                if (s == physicsQuadtree)
+                {
+                    return;
+                }
+
                 var aabb = a.AABB;
                 var quadColor = a.Value;
                 var outlineColor = new Color(0, 0, 0, 100);
@@ -248,10 +260,16 @@ namespace Quadtree.Examples
 
                 rects.Add(aabb, quadData);
             };
-            quadtree.OnQuadAdded += new EventHandler<RegionQuadtree<Color>.QuadEventArgs<Color>>(onQuadAdded);
+            renderQuadtree.OnQuadAdded += new EventHandler<RegionQuadtree<Color>.QuadEventArgs<Color>>(onQuadAdded);
+            physicsQuadtree.OnQuadAdded += new EventHandler<RegionQuadtree<Color>.QuadEventArgs<Color>>(onQuadAdded);
 
             Action<object, RegionQuadtree<Color>.QuadEventArgs<Color>> onQuadRemoving = (s, a) =>
             {
+                if (s == physicsQuadtree)
+                {
+                    return;
+                }
+
                 var quadData = rects[a.AABB];
 
                 // fix
@@ -261,41 +279,49 @@ namespace Quadtree.Examples
 
                 rects.Remove(a.AABB);
             };
-            quadtree.OnQuadRemoving += new EventHandler<RegionQuadtree<Color>.QuadEventArgs<Color>>(onQuadRemoving);
+            renderQuadtree.OnQuadRemoving += new EventHandler<RegionQuadtree<Color>.QuadEventArgs<Color>>(onQuadRemoving);
+            physicsQuadtree.OnQuadRemoving += new EventHandler<RegionQuadtree<Color>.QuadEventArgs<Color>>(onQuadRemoving);
 
             Action<object, RegionQuadtree<Color>.QuadChangedEventArgs<Color>> onQuadChanged = (s, a) =>
             {
+                if (s == physicsQuadtree)
+                {
+                    return;
+                }
+
                 var quadData = rects[a.AABB];
                 var quadColor = a.Value;
                 var outlineColor = new Color(0, 0, 0, 100);
 
                 bodyRenderer.ModifyFixture(quadData.fix, quadColor);
             };
-            quadtree.OnQuadChanged += new EventHandler<RegionQuadtree<Color>.QuadChangedEventArgs<Color>>(onQuadChanged);
+            renderQuadtree.OnQuadChanged += new EventHandler<RegionQuadtree<Color>.QuadChangedEventArgs<Color>>(onQuadChanged);
+            physicsQuadtree.OnQuadChanged += new EventHandler<RegionQuadtree<Color>.QuadChangedEventArgs<Color>>(onQuadChanged);
 
             Action<object, RegionQuadtree<Color>.QuadExpandEventArgs<Color>> onExpand = (s, a) =>
             {
-                var oldRoot = quadtree;
+                if (s == physicsQuadtree)
+                {
+                    return;
+                }
+
+                var oldRoot = renderQuadtree;
                 var newRoot = a.NewRoot;
 
-                this.quadtree = newRoot;
+                this.renderQuadtree = newRoot;
 
                 qtResolution++;
-
-                Debug.WriteLine("Number of fixtures that should not be there: " + body.FixtureList.Count());
-                //while (body.FixtureList.Count > 0)
-                //{
-                //    body.DestroyFixture(body.FixtureList[body.FixtureList.Count() - 1]);
-                //}
 
                 position -= new Vector2f(a.Offset.X, a.Offset.Y) * qtMultiplier;
                 body.Position -= new Vector2f(a.Offset.X, a.Offset.Y).RotateRadians(body.Rotation).DisplayToSim().ToXNA() * qtMultiplier;
 
-                resolutionText.DisplayedString = "Resolution " + quadtree.AABB.Width * qtMultiplier + "x" + quadtree.AABB.Height * qtMultiplier;
+                resolutionText.DisplayedString = "Resolution " + renderQuadtree.AABB.Width * qtMultiplier + "x" + renderQuadtree.AABB.Height * qtMultiplier;
             };
-            quadtree.OnExpand += new EventHandler<RegionQuadtree<Color>.QuadExpandEventArgs<Color>>(onExpand);
+            renderQuadtree.OnExpand += new EventHandler<RegionQuadtree<Color>.QuadExpandEventArgs<Color>>(onExpand);
+            physicsQuadtree.OnExpand += new EventHandler<RegionQuadtree<Color>.QuadExpandEventArgs<Color>>(onExpand);
 
-            quadtree.Set(Color.White);
+            renderQuadtree.Set(Color.White);
+            physicsQuadtree.Set(Color.White);
         }
 
         private void initInput()
@@ -342,8 +368,8 @@ namespace Quadtree.Examples
                         break;
                     case Keyboard.Key.R:
                     {
-                        quadtree.Set(Color.White);
-                        lastRegions = quadtree.FindConnectedComponents();
+                        renderQuadtree.Set(Color.White);
+                        lastRegions = renderQuadtree.FindConnectedComponents();
                         lastRegions.Sort(new Comparison<List<RegionQuadtree<Color>>>((v1, v2) => v1.Count.CompareTo(v2.Count)));
                         break;
                     }
@@ -354,7 +380,7 @@ namespace Quadtree.Examples
                             break;
                         }
 
-                        quadtree.ExpandFromCenter();
+                        renderQuadtree.ExpandFromCenter();
                         break;
                     }
                 }
@@ -375,7 +401,7 @@ namespace Quadtree.Examples
             radiusText = new Text("Radius " + selectionRadius, fontBold, 32u);
             radiusText.Position = getGUIPos(0.3f, 0.03f);
 
-            resolutionText = new Text("Resolution " + quadtree.AABB.Width * qtMultiplier + "x" + quadtree.AABB.Height * qtMultiplier, fontBold, 32u);
+            resolutionText = new Text("Resolution " + renderQuadtree.AABB.Width * qtMultiplier + "x" + renderQuadtree.AABB.Height * qtMultiplier, fontBold, 32u);
             resolutionText.Position = getGUIPos(0.6f, 0.03f);
 
             helpText = new Text("", fontNormal, 20u);
