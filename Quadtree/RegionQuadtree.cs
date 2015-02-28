@@ -17,6 +17,12 @@ namespace Quadtree
         private int depth;
 
         private T? value;
+
+        public T? Value
+        {
+            get { return value; }
+        }
+
         private RegionQuadtree<T>[] quads;
 
         private RegionQuadtree<T> parent;

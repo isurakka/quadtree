@@ -134,6 +134,16 @@ namespace Quadtree.Examples
                         sb.Append(" }");
                         Debug.WriteLine(sb.ToString());
 #endif
+
+                        foreach (var region in lastRegions.Skip(1))
+                        {
+                            var newQt = new RegionQuadtree<Color>(qtResolution);
+                            foreach (var qt in region)
+                            {
+                                Debug.Assert(qt.Value.HasValue);
+                                newQt.SetAABB(qt.AABB, qt.Value.Value);
+                            }
+                        }
                     }
                 }
 
