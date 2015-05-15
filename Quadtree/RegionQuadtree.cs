@@ -10,16 +10,21 @@ using QDO = Quadtree.QuadDirectionOperation;
 
 namespace Quadtree
 {
-    public class RegionQuadtree<T> : IEnumerable<T>
+    public class RegionQuadtree<T> : IEnumerable<T>, IEnumerable<RegionQuadtree<T>>
         where T: struct
     {
-        private int resolution;
         private int depth;
 
         private T? value;
         private RegionQuadtree<T>[] quads;
 
         private RegionQuadtree<T> parent;
+
+        private int resolution;
+        public int Resolution
+        {
+            get { return resolution; }
+        }
 
         private AABB2i aabb;
         public AABB2i AABB
@@ -625,7 +630,9 @@ namespace Quadtree
         public bool UnsetCircle(Point2i point, int radius)
         {
             var rectSize = (int)(radius / Math.Sqrt(2));
-            var testAABB = new AABB2i(point - new Point2i(rectSize, rectSize), point + new Point2i(rectSize, rectSize));
+            var testAABB = new AABB2i(
+                point - new Point2i(rectSize - 1, rectSize - 1),
+                point + new Point2i(rectSize - 1, rectSize - 1));
 
             bool anyOuterUnset = false;
             for (int i = point.X - radius; i <= point.X + radius; i++)
@@ -637,7 +644,7 @@ namespace Quadtree
                     if (testAABB.Contains(currentPoint))
                         continue;
 
-                    if ((point - currentPoint).Length() < radius)
+                    if ((point - currentPoint).Length() <= radius)
                     {
                         anyOuterUnset |= unsetInternal(ref currentPoint);
                     }
@@ -737,6 +744,35 @@ namespace Quadtree
             return true;
         }
 
+        public void MoveTo(RegionQuadtree<T> other)
+        {
+            /*
+            var foundPosition = false;
+            var myPosition = 0;
+            for (int i = 0; i < parent.quads.Length; i++)
+            {
+                if (parent.quads[i] == this)
+                {
+                    myPosition = i;
+                    foundPosition = true;
+                    break;
+                }
+            }
+
+            if (!foundPosition)
+            {
+                throw new InvalidOperationException("Parent doesn't have this quadtree as child!");
+            }
+            */
+
+            foreach (var quadtree in (IEnumerable<RegionQuadtree<T>>)this)
+            {
+                other.SetAABB(quadtree.AABB, quadtree.value.Value);
+            }
+
+            Unset();
+        }
+
         public IEnumerator<T> GetEnumerator()
         {
             switch (Type)
@@ -762,6 +798,28 @@ namespace Quadtree
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        IEnumerator<RegionQuadtree<T>> IEnumerable<RegionQuadtree<T>>.GetEnumerator()
+        {
+            switch (Type)
+            {
+                case QuadType.Black:
+                    yield return this;
+                    break;
+                case QuadType.Grey:
+                    foreach (var item in quads)
+                    {
+                        foreach (var item2 in ((IEnumerable<RegionQuadtree<T>>)item))
+                        {
+                            yield return item2;
+                        }
+                    }
+                    break;
+                case QuadType.White:
+                default:
+                    break;
+            }
         }
 
         public IEnumerable<RegionQuadtree<T>> Traverse()
@@ -983,12 +1041,12 @@ namespace Quadtree
             return newRoot;
         }
 
-        public List<List<RegionQuadtree<T>>> FindConnectedComponents()
+        public List<List<RegionQuadtree<T>>> FindConnectedComponents(bool quadrants = true)
         {
             var linked = new List<DisjointSet<int>>();
             var labels = new Dictionary<RegionQuadtree<T>, int>();
-            cclInternal(new RegionQuadtree<T>[8], linked, labels, QDO.Sides);
-            cclInternal(new RegionQuadtree<T>[8], linked, labels, QDO.Sides.Reverse().ToArray());
+            cclInternal(new RegionQuadtree<T>[8], linked, labels, QDO.Sides, quadrants);
+            cclInternal(new RegionQuadtree<T>[8], linked, labels, QDO.Sides.Reverse().ToArray(), quadrants);
 
             var convert = new Dictionary<int, int>();
             var regions = new List<List<RegionQuadtree<T>>>();
@@ -1013,7 +1071,7 @@ namespace Quadtree
             return regions;
         }
 
-        private void cclInternal(RegionQuadtree<T>[] a, List<DisjointSet<int>> linked, Dictionary<RegionQuadtree<T>, int> labels, QuadDirection[] sides)
+        private void cclInternal(RegionQuadtree<T>[] a, List<DisjointSet<int>> linked, Dictionary<RegionQuadtree<T>, int> labels, QuadDirection[] sides, bool quadrants)
         {
             var t = new RegionQuadtree<T>[8];
             if (Type == QuadType.Grey)
@@ -1023,15 +1081,19 @@ namespace Quadtree
                     var d = sides[i];
 
                     t[(int)d] = soni(a[(int)d], QDO.Quad(QDO.OpSide(d), QDO.CSide(d)));
-                    t[(int)QDO.Quad(d, QDO.CSide(d))] = soni(a[(int)QDO.Quad(d, QDO.CSide(d))], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
-                    t[(int)QDO.CSide(d)] = soni(a[(int)QDO.CSide(d)], QDO.Quad(d, QDO.CCSide(d)));
-                    t[(int)QDO.Quad(QDO.OpSide(d), QDO.CSide(d))] = soni(a[(int)QDO.CSide(d)], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
-                    t[(int)QDO.OpSide(d)] = this[QDO.Quad(QDO.OpSide(d), QDO.CSide(d))];
-                    t[(int)QDO.Quad(QDO.OpSide(d), QDO.CCSide(d))] = this[QDO.Quad(QDO.OpSide(d), QDO.CCSide(d))];
+                    t[(int)QDO.CSide(d)] = soni(a[(int)QDO.CSide(d)], QDO.Quad(d, QDO.CCSide(d))); 
+                    t[(int)QDO.OpSide(d)] = this[QDO.Quad(QDO.OpSide(d), QDO.CSide(d))]; 
                     t[(int)QDO.CCSide(d)] = this[QDO.Quad(d, QDO.CCSide(d))];
-                    t[(int)QDO.Quad(d, QDO.CCSide(d))] = soni(a[(int)d], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
 
-                    this[QDO.Quad(d, QDO.CSide(d))].cclInternal(t, linked, labels, sides);
+                    if (quadrants)
+                    {
+                        t[(int)QDO.Quad(d, QDO.CSide(d))] = soni(a[(int)QDO.Quad(d, QDO.CSide(d))], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
+                        t[(int)QDO.Quad(QDO.OpSide(d), QDO.CSide(d))] = soni(a[(int)QDO.CSide(d)], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
+                        t[(int)QDO.Quad(QDO.OpSide(d), QDO.CCSide(d))] = this[QDO.Quad(QDO.OpSide(d), QDO.CCSide(d))];
+                        t[(int)QDO.Quad(d, QDO.CCSide(d))] = soni(a[(int)d], QDO.Quad(QDO.OpSide(d), QDO.CCSide(d)));
+                    }
+
+                    this[QDO.Quad(d, QDO.CSide(d))].cclInternal(t, linked, labels, sides, quadrants);
                 }
             }
             else if (Type == QuadType.Black)
