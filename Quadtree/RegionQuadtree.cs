@@ -10,7 +10,7 @@ using QDO = Quadtree.QuadDirectionOperation;
 
 namespace Quadtree
 {
-    public class RegionQuadtree<T> : IEnumerable<T>, IEnumerable<RegionQuadtree<T>>
+    public class RegionQuadtree<T> : IEnumerable<T>
         where T: struct
     {
         private int depth;
@@ -800,6 +800,29 @@ namespace Quadtree
             return GetEnumerator();
         }
 
+        IEnumerable<RegionQuadtree<T>> GetBlackRegions()
+        {
+            switch (Type)
+            {
+                case QuadType.Black:
+                    yield return this;
+                    break;
+                case QuadType.Grey:
+                    foreach (var item in quads)
+                    {
+                        foreach (var item2 in item.GetBlackRegions())
+                        {
+                            yield return item2;
+                        }
+                    }
+                    break;
+                case QuadType.White:
+                default:
+                    break;
+            }
+        }
+
+        /*
         IEnumerator<RegionQuadtree<T>> IEnumerable<RegionQuadtree<T>>.GetEnumerator()
         {
             switch (Type)
@@ -821,6 +844,7 @@ namespace Quadtree
                     break;
             }
         }
+         */
 
         public IEnumerable<RegionQuadtree<T>> Traverse()
         {

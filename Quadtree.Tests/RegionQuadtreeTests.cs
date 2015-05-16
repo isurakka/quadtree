@@ -21,8 +21,8 @@ namespace Quadtree.Tests
         [Fact()]
         public void ResolutionBoundaryShouldSuccess()
         {
-            Assert.DoesNotThrow(() => new RegionQuadtree<int>(30));
-            Assert.DoesNotThrow(() => new RegionQuadtree<int>(0));
+            new RegionQuadtree<int>(30);
+            new RegionQuadtree<int>(0);
         }
 
         [Fact()]
